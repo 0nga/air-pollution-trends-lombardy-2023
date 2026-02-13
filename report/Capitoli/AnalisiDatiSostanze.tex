@@ -1,0 +1,659 @@
+\section{Data Analysis}
+
+\subsection{Plotting Datas}
+\noindent
+In order to understand what kind of substance have been measured in which Lombardia's zone and how many instances i have for each substance i plotted the following graphs.
+ 
+\medskip
+\begin{lstlisting}
+library(ggplot2) 
+
+# generate a scatterplot showing which types of substances 
+# are measured in which zone
+ggplot(fullData, aes(x = Provincia, y = NomeTipoSensore)) + 
+                      geom_point() + 
+                      labs(x = "Zone", y ="Measured Substance",
+                      title = "Measured Substance in different zones")
+
+# find number of instances for each substance
+instanceNumber <- as.data.frame(table(fullData$NomeTipoSensore))
+
+par(mar = c(5, 8, 2, 2))  # Adjust the margins (bottom, left, top, right)
+
+custom_values <- instanceNumber$Freq
+custom_labels <- instanceNumber$Var1[which(instanceNumber$Freq
+ %in% custom_values)]
+
+barplot(instanceNumber$Freq, names.arg = custom_labels, 
+        horiz = TRUE, las = 1, col = "transparent", 
+        main = "Number of instances for each substance", cex.names = 0.7)
+\end{lstlisting}
+\medskip
+\noindent
+From the graph (Fig.~\ref{fig:Instances1}) we can see how it is not possible to make comparisons between zones regarding some pollutants, such as Piombo, Arsenic, Cadmium, Nikel and Black carbon, as their measurements are present in only one province. For the remaining substances: in some cases they are present in all the provinces, in others only for a limited group.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{File/AnalisiDati/sostanzeIstanze.pdf}
+  \caption{Instance number for substance}
+  \label{fig:Instances2}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{File/AnalisiDati/sostanzeProvince.png}
+  \caption{Measured substances for zone}
+  \label{fig:Instances1}
+\end{center}
+\end{figure}
+
+\noindent
+In order to make a better analysis of the data, i studied them following two alternative paths:
+\begin{itemize}
+	\item split the original dataset in a dataset for every different substance
+	\item split the original dataset in a dataset for every different zone (Provincia)
+\end{itemize}
+\noindent
+In this way i was able to compare results between different zones and also to compare results between different substances in the same zone.
+
+\subsection{Analysis by substance}
+
+
+
+
+
+
+
+
+\subsubsection{Lead (Pb) - Arsenic (As) - Cadmium (Cd) - Nikel (Ni)}
+\noindent
+For these 4 substances i only found one instance each in the dataset (Tab.~\ref{tab:4instances}), that's the annual average value.
+\\According to the Arpa site\cite{ARPA site} the limit value for these pollutants are:
+
+\begin{table}[ht]
+  \centering
+  \small % Set font size to small
+  \begin{tabularx}{\textwidth}{XXXXX}
+    \toprule
+    \textbf{Substance} & Arsenic & Cadmium & Nickel & Lead \\
+    \midrule
+    \multirow{2}{=}{\textbf{Limit Value}\footnote{defined as annual average}} & \multirow{2}{=}{6 $ng/m^3$} & \multirow{2}{=}{5 $ng/m^3$} & \multirow{2}{=}{20 $ng/m^3$} & \multirow{2}{=}{0.5 $ng/m^3$} \\
+    & & & & \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Limit values for Cadmium, Lead, Nickel, Arsenic}
+  \label{tab:limitValues}
+\end{table}
+
+\begin{table}[ht]
+  \centering
+  \small % Set font size to small
+  \begin{tabularx}{\textwidth}{XXXXX}
+    \toprule
+    \textbf{Attribute} & \textbf{Arsenic} & \textbf{Cadmium} & \textbf{Nickel} & \textbf{Lead} \\
+    \midrule
+    Id Sensore & 12674 & 12675 & 12673 & 12695 \\
+    Data & 2023-08-12 & 2023-08-12 & 2023-08-12 & 2023-08-12 \\
+    Valore & \textcolor{green}{0.461} & \textcolor{green}{0.1} & \textcolor{green}{0.85} & \textcolor{red}{2.514} \\
+    UnitaMisura & $ng/m^3$ & $ng/m^3$ & $ng/m^3$ & $ng/m^3$ \\
+    Idstazione & 1264 & 1264 & 1264 & 1264 \\
+    Provincia & SO & SO & SO & SO \\
+    Comune & Sondrio & Sondrio & Sondrio & Sondrio \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Instances for Cadmium, Lead, Nickel, Arsenic all measured by Sondrio v. Paribelli station}
+  \label{tab:4instances}
+\end{table}
+
+\noindent
+As we can see there is only one station that carried out this measurement, which is provided to us as an annual average. \\We can notice that for 3 of the 4 substances the annual limit value was respected, the only one that excedeed it was lead.
+
+
+
+
+
+
+
+\newpage
+\subsubsection{BlackCarbon}
+
+There are only 3 stations that measure this substance, all located in Milan (in a small area), so i plotted a graph (Fig.~\ref{fig:BCtrend}) containing the annual trend, where each different line represents a different station. \\It's part of PM10 but there are no limits for its concentration in the air\cite{Black Carbon}, so there's no much we can say about it, the only thing i was able to notice is that the value is lower in the warmer seasons (months from April to August) and higher in the colder seasons (months from September to March).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/BC/trendBC.pdf}
+\caption{Black Carbon Trend in 2023}
+\label{fig:BCtrend}
+\end{figure}
+
+
+
+
+
+
+
+
+\newpage
+\subsubsection{PM10}
+\noindent
+The datas are provided as an average over the previous 24 hours. \\The \textbf{daily limit} value is 50 $\mu g/m^3$ as an hourly average, and must not to be exceeded more than 35 days/year\cite{ARPA site}. \\I counted for each zone the number of the days that at least one station is above the limit and showed the results as a barplot.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/PM10/PM10DailyLimit.pdf}
+    \caption{Compliance with the daily limit}
+    \label{fig:PM10Daily}
+\end{center}
+\end{figure}
+
+\noindent
+From the graph (Fig.~\ref{fig:PM10Daily}) we can see that only a few zones are in the right range: Como (CO), Sondrio (SO), Varese (VA) and Lecco (LC). \\The worst zones are Brescia (BS) and Cremona (CR), followed by Mantova. 
+\\The best zone is Como (CO) province.
+
+\newpage\noindent
+The \textbf{annual limit} value that must not be excedeed is 40 $\mu g/m^3$ on an yearly average\cite{ARPA site}. I calculated the annual average for each station, then i summarized them by area by averaging the stations in each area, finally i checked which zones exceeded the value established by law. 
+\\I used another barplot to show the obtained results.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/PM10/AnnualPM10.pdf}
+    \caption{Compliance with the yearly limit}
+    \label{fig:PM10Yearly}
+\end{center}
+\end{figure}
+
+\noindent
+By observing the graph (Fig.~\ref{fig:PM10Yearly}) we can see that in each area the yearly average PM10 limit established by law has been respected. \\The values reflect those contained in the previous graph: the three worst provinces slightly matches the previous ones and have the highest annual values and the four zones that respect the daily limit are also the four zones with the lowest annual values.
+
+\newpage\noindent
+In order to have a better view on the PM10's level, i also plotted two density maps to see which zones are more polluted.
+\\The point's scale color is correct, but the density plot (Fig.~\ref{fig:PM10Density1}) is a little biased by the number of the monitoring station located in the area: there are darker zones where there are more station. 
+\\The graphs are still correct because we have darker zones where the values are higher, in both cases.  
+\\The color scale is only used to understand the concentration level of the substance in the air, it does not provide information on whether or not the limit imposed by law is respected.
+
+\begin{figure}[H]
+\begin{center}
+      \includegraphics[width=\linewidth]{File/AnalisiDati/PM10/annualDensityPM10Station.pdf}
+    \caption{Annual Average PM10 by Station}
+    \label{fig:PM10Density1}
+\end{center}
+\end{figure}
+
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/PM10/annualDensityPM10Zone.pdf}
+    \caption{Annual Average PM10 by Zone}
+    \label{fig:PM10Density2}
+\end{center}
+\end{figure}
+
+\noindent
+To obtain this second graph (Fig.~\ref{fig:PM10Density2}) i only calculated the average between stations located in the same zone. The first graph shows the annual average for each station, in this one the values has been summarized for each area. The colors and values reflect those visible in the previous graph.
+
+
+
+
+\newpage
+\subsubsection{PM2.5}
+The datas are provided as an average over the previous 24 hours.
+\\The \textbf{annual limit} value is 25 $\mu g/m^3$ as annual average\cite{Substance limits}. I calculated the annual average for each station, then i summarized them by area by averaging the stations in each area, finally i checked which zones exceeded the value established by law, i used a barplot to show the obtained results.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/PM2.5/annualPM2.5.pdf}
+    \caption{Compliance with the yearly limit per zone}
+    \label{fig:PM2.5Yearly}
+\end{center}
+\end{figure}
+
+\noindent
+From the graph (Fig.~\ref{fig:PM2.5Yearly}) we can see that in each area the yearly average PM2.5 limit established by law has been respected. \\The area with the highest average value of PM2.5 is the Cremona (CR) province, the area with the lowest average value is the Lecco (LC) province.
+
+\newpage\noindent
+In order to have a better view on the PM2.5’s level, i also plotted two density maps to see which zones are more polluted.
+\\The point’s scale color is correct, but the density plot (Fig.~\ref{fig:PM2.5Density}) is a little biased by the number of the monitoring station located in the area: there are darker zones where there are more station.
+\\The graphs are still correct because we have darker zones where the values are higher, in both cases.
+\\The color scale is only used to understand the concentration level of the substance in the air, it does not provide information on whether or not the limit imposed by law is respected.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/PM2.5/annualDensityPM2.5Station.pdf}
+    \caption{Annual Average PM2.5 by Station}
+    \label{fig:PM2.5Density}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/PM2.5/annualDensityPM2.5Zone.pdf}
+    \caption{Annual Average PM2.5 by Zone}
+    \label{fig:PM2.5Density2}
+\end{center}
+\end{figure}
+
+\noindent
+To obtain this second graph (Fig.~\ref{fig:PM2.5Density2}) i only calculated the average between stations located in the same zone. The first graph shows the annual average for each station, in this one the values has been summarized for each area. The colors and values reflect those visible in the previous graph.
+
+
+
+
+
+
+
+
+\newpage
+\subsubsection{Nitrogen dioxide (NO2)}
+\noindent
+The \textbf{daily limit} value is 200 $\mu g/m^3$  as an hourly average, and must not to be exceeded more than 18 times/year\cite{ARPA site}. \\I counted for each zone the number of times that at least one station is above the limit and show the results as a barplot.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NO2/NO2DailyLimit.pdf}
+    \caption{Compliance with the daily limit}
+    \label{fig:NO2Daily}
+\end{center}
+\end{figure}
+
+\noindent
+From the graph (Fig.~\ref{fig:NO2Daily}) we can see that in each area the daily nitrogen dioxide average limit established by law have been respected by every zone. \\Only one station in the province of Milan exceeded the limit of 20 $\mu g/m^3$ for 2 days, the stations in the other provinces did not exceed it even for one day.
+
+\newpage\noindent
+The \textbf{annual limit} value that must not be excedeed is 40 $\mu g/m^3$  as annual average\cite{ARPA site}. I calculated it for each station, then i summarized it by area by averaging the stations in each area and finally i checked which areas exceeded the value established by law. \\I used another barplot to show the results obtained.
+
+\begin{figure}[H]
+\begin{center}
+     \includegraphics[width=\linewidth]{File/AnalisiDati/NO2/AnnualNO2.pdf}
+    \caption{Compliance with the yearly limit}
+    \label{fig:NO2Yearly}
+\end{center}
+\end{figure}
+
+\noindent
+From the graph (Fig.~\ref{fig:NO2Yearly}) we can see that also the yearly average limits established by law have been respected by every zone. \\The areas with the highest yearly average values are the Milano (MI) and Monza Brianza (MB) provinces, the areas with the lowest is Sondrio (SO) province. 
+
+\newpage\noindent
+In order to have a better view on the Nitrogen dioxide’s level, i also plotted two density maps to see which zones are more polluted.
+\\The point’s scale color is correct, but the density plot (Fig.~\ref{fig:NO2Density1}) is a little biased by the number of the monitoring station located in the area: there are darker zones where there are more station.
+\\The graphs are still correct because we have darker zones where the values are higher, in both cases.
+\\The color scale is only used to understand the concentration level of the substance in the air, it does not provide information on whether or not the limit imposed by law is respected.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NO2/annualDensityNO2Station.pdf}
+    \caption{Annual Average NO2 by Station}
+    \label{fig:NO2Density1}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NO2/annualDensityNO2Zone.pdf}
+    \caption{Annual Average NO2 by Zone}
+    \label{fig:NO2Density2}
+\end{center}
+\end{figure}
+
+\noindent
+To obtain this second graph (Fig.~\ref{fig:NO2Density2}) i only calculated the average between stations located in the same zone. The first graph shows the annual average for each station, in this one the values has been summarized for each area. The colors and values reflect those visible in the previous graph.
+
+
+
+
+
+\newpage
+\subsubsection{Sulfur dioxide (SO2)}
+\noindent
+The \textbf{hourly limit} value is 350 $\mu g/m^3$  as hourly average, and must not to be exceeded more than 24 times/year\cite{ARPA site}. \\I counted for each zone the number of times that at least one station is above the limit.
+
+\medskip
+\begin{lstlisting}[language=r]
+# Calcolo del numero di volte over il limite per provincia
+SO2OverLimit <- SO2 %>% 
+  filter(Valore > 350)%>%
+  group_by(Provincia, Data) %>%
+  group_by(Provincia) %>%
+  summarize(TimesAbove350 = n())
+
+nrow(SO2OverLimit)
+\end{lstlisting}
+
+\noindent
+This return the value 0, so no province has ever exceeded the hourly sulfur dioxide limit in the year 2023. As a check i also did
+
+\medskip
+\begin{lstlisting}[language=r]
+nrow(SO2[SO2$Valore> 350,])
+\end{lstlisting}
+\noindent
+but ended up obtaining 0 rows.
+
+\noindent
+The \textbf{daily limit} is 125 $\mu g/m^3$  daily average, and must not to be exceeded more than 3 days/year\cite{ARPA site}. \\I calculated the average daily value for each area and counted the number of times that value exceeded the limit imposed by law.
+
+\medskip
+\begin{lstlisting}[language=r]
+# Calcolo della media giornaliera per provincia
+SO2DailyAverage <- SO2
+
+# Convert the "Data" column to Date type
+SO2DailyAverage$Data <- as.Date(SO2DailyAverage$Data)
+
+# Group by "Provincia" and "Data", then calculate the daily average for each group
+daily_avgs <- SO2DailyAverage %>%
+  group_by(Provincia, Data) %>%
+  summarise(DailyAvg = mean(Valore))
+
+# Count the number of distinct days where the average value is greater than 125 for each "Provincia"
+SO2distinct_days_count_per_province <- daily_avgs %>%
+  filter(DailyAvg > 125) %>%
+  group_by(Provincia) %>%
+  summarise(DaysAbove125 = n_distinct(Data))
+
+# Display the resulting data frame
+nrow(SO2distinct_days_count_per_province)
+\end{lstlisting}
+
+\noindent
+This return the value 0, so no province has ever exceeded the daily sulfur dioxide limit in the year 2023.
+\noindent
+As a check i also did
+
+\medskip
+\begin{lstlisting}[language=r]
+SO2[SO2$Valore> 125,]
+\end{lstlisting}
+and ended up getting only 4 instances, so i assume my results about daily average for province were correct.
+
+\noindent
+Even though there is \textbf{no annual limit}, i still have created two density maps that show the annual average, both by station and by province, in order to have a better view on the sulfur dioxide's level. 
+
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=0.95\linewidth]{File/AnalisiDati/SO2/annualDensitySO2Station.pdf}
+    \caption{Annual Average SO2 by Station}
+    \label{fig:SO2Density1}
+\end{center}
+\end{figure}
+
+\noindent 
+The density plot (Fig.~\ref{fig:SO2Density1}) is a little biased by the number of the monitoring station located in the area: there are darker zones where there are more station. 
+\\The graphs are still correct because we have darker zones where the values are higher, in both cases.
+\\The color scale is only used to understand the concentration level of the substance in the air, it does not provide information on whether or not the limit imposed by law is respected.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=0.95\linewidth]{File/AnalisiDati/SO2/annualDensitySO2Zone.pdf}
+    \caption{Annual Average SO2 by Zone}
+    \label{fig:SO2Density2}
+\end{center}
+\end{figure}
+
+\noindent
+To obtain this second graph (Fig.~\ref{fig:SO2Density2}) i only calculated the average between stations located in the same zone. The first graph shows the annual average for each station, in this one the values has been summarized for each area. The colors and values reflect those visible in the previous graph.
+
+
+
+
+
+
+
+
+
+\newpage
+\subsubsection{Ozone (O3)}
+\noindent 
+The \textbf{limit value} is 120 $\mu g/m^3$ as 8h moving average, and must not to be exceeded more than 25 times/year\cite{ARPA site}. \\I counted for each zone the number of times that at least one station is above the limit and show the results as a barplot (Fig.~\ref{fig:O3 over limit by province}).
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/O3/O3OverLimit.pdf}
+    \caption{Number of times O3 is over limit}
+    \label{fig:O3 over limit by province}
+\end{center}
+\end{figure}
+
+\noindent
+From the graph (Fig.~\ref{fig:O3 over limit by province}) it is possible to notice that in every zone the ozone level is much higher than the limit allowed by law. 
+\\The worst zone is Lecco (LC) province, the best one is Sondrio (SO).
+
+\newpage\noindent
+In order to have a better view on the ozone level, i also plotted two density maps to see which zones are more polluted.
+\\The point's scale color is correct, but the density plot (Fig.~\ref{fig:O3Density}) is a little biased by the number of the monitoring station located in the area: there are darker zones where there are more station. 
+\\The graphs are still correct because we have darker zones where the values are higher, in both cases.
+\\The color scale is only used to understand the concentration level of the substance in the air, it does not provide information on whether or not the limit imposed by law is respected.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/O3/annualDensityO3Station.pdf}
+    \caption{Annual Average O3 by Station}
+    \label{fig:O3Density}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/O3/annualDensityO3Zone.pdf}
+    \caption{Annual Average O3 by Zone}
+    \label{fig:O3Density1}
+\end{center}
+\end{figure}
+
+\noindent
+To obtain this second graph (Fig.~\ref{fig:O3Density1}) i only calculated the average between stations located in the same zone. The first graph shows the annual average for each station, in this one the values has been summarized for each area. The colors and values reflect those visible in the previous graph.
+
+
+
+
+
+
+
+
+
+
+\newpage
+\subsubsection{Carbon oxide (CO)}
+For the carbon oxide is given the 8h moving average on the previous 8 hours.
+\\The \textbf{daily limit} value is 10000 $\mu g/m^3$ as 8h moving average\cite{Substance limits}. \\I calculated the average daily value for each area and counted the number of times that value exceeded the limit imposed by law. 
+
+\medskip
+\begin{lstlisting}[language=r]
+# Calcolo del numero di volte over il limite per provincia
+COOverLimit <- CO %>%
+  filter(Valore > 10) %>%
+  distinct(Provincia, Data) %>%
+  group_by(Provincia) %>%
+  summarize(TimesAbove10 = n())
+
+nrow(COOverLimit)
+\end{lstlisting}
+
+\noindent
+This return the value 0, so no province has ever exceeded the carbon oxide limit in the year 2023. As a check i also did
+
+\medskip
+\begin{lstlisting}[language=r]
+nrow(CO[CO$Valore> 10,])
+\end{lstlisting}
+
+\noindent
+but ended up obtaining 0 rows.
+
+
+
+
+
+
+
+
+\newpage
+\subsubsection{Benzene (C6H6)}
+\noindent
+For the benzene is given the 24h moving average on the previous 24 hours.
+\\Looking at the ``Measured substances for zone graph'' (fig.~\ref{fig:Instances1}), we can see that for 2 zones (MB, VA) there are no detections for benzene, therefore they will not be shown in the subsequent graphs.
+\\The \textbf{annual limit} is 5 $\mu g/m^3$  as annual average\cite{ARPA site}, i calculated the annual average for each station, then i summarized them by area by averaging the stations in each area, finally i checked which zones exceeded the value established by law, i used a barplot to show the obtained results.
+
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/Benzene/annualBenzene.pdf}
+    \caption{Compliance with the yearly limit per zone}
+    \label{fig:BenzeneYearly}
+\end{center}
+\end{figure}
+
+\noindent
+From the graph (Fig.~\ref{fig:BenzeneYearly}) we can see that in each zone the yearly average benzene limit established by law has been respected.
+\\The area with the highest average value is the Cremona (CR) province, the one with the lowest value is Pavia (PV).
+
+
+\newpage\noindent
+In order to have a better view on the benzene's level, i also plotted two density maps to see which zones are more polluted.
+\\The point's scale color is correct, but the density plot (Fig.~\ref{fig:BenzeneDensity}) is a little biased by the number of the monitoring station located in the area: there are darker zones where there are more station. 
+\\The graphs are still correct because we have darker zones where the values are higher, in both cases.
+\\The color scale is only used to understand the concentration level of the substance in the air, it does not provide information on whether or not the limit imposed by law is respected.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/Benzene/annualDensityBenzeneStation.pdf}
+    \caption{Annual Average C6H6 by Station}
+    \label{fig:BenzeneDensity}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/Benzene/annualDensityBenzeneZone.pdf}
+    \caption{Annual Average C6H6 by Zone}
+    \label{fig:BenzeneDensity2}
+\end{center}
+\end{figure}
+
+\noindent\noindent
+To obtain this second graph (Fig.~\ref{fig:BenzeneDensity2}) i only calculated the average between stations located in the same zone. The first graph shows the annual average for each station, in this one the values has been summarized for each area. The colors and values reflect those visible in the previous graph.
+
+
+
+
+
+
+
+
+\newpage
+\subsubsection{Ammonia (NH3)}
+\noindent
+\\Looking at the ``Measured substances for zone graph'' (fig.~\ref{fig:Instances1}), , we can see that for 5 zones (BS, CO, MB, SO, VA) there are no detections for this substance, therefore they will not be shown in the subsequent graphs.
+\\For ammonia ther is \textbf{no limit} estabilished by law, but it's still present in the air (concentration in urban area: 20 $\mu g/m^3$ ), i  will use this value as if it were the limit\cite{NH3 limits}.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NH3/NH3DailyLimit.pdf}
+    \caption{Compliance with the daily limit per zone}
+    \label{fig:NH3Yearly1}
+\end{center}
+\end{figure}
+
+
+\newpage\noindent
+In order to have a better view on the ammonia's level, i also plotted two density maps to see which zones are more polluted.
+\\The point's scale color is correct, but the density plot (Fig.~\ref{fig:NH3Density}) is a little biased by the number of the monitoring station located in the area: there are darker zones where there are more station. 
+\\The graphs are still correct because we have darker zones where the values are higher, in both cases.
+\\The color scale is only used to understand the concentration level of the substance in the air, it does not provide information on whether or not the limit imposed by law is respected.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NH3/annualDensityNH3Station.pdf}
+    \caption{Annual Average NH3 by Station}
+    \label{fig:NH3Density}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NH3/annualDensityNH3Zone.pdf}
+    \caption{Annual Average NH3 by Zone}
+    \label{fig:NH3Density2}
+\end{center}
+\end{figure}
+
+\noindent
+To obtain this second graph (Fig.~\ref{fig:NH3Density2}) i only calculated the average between stations located in the same zone. The first graph shows the annual average for each station, in this one the values has been summarized for each area. The colors and values reflect those visible in the previous graph.
+
+
+
+
+
+\newpage
+\subsubsection{Nitrogen oxides (NOX)}
+\noindent
+\\For nitrogen oxides i didn't find a limit established by law, so i simply plotted two density maps showing the average yearly value for every station and the average yearly value for every zone, in order to see which zones have the higher concentration.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NOX/annualDensityNOXStation.pdf}
+    \caption{Annual Average NOX by station}
+    \label{fig:NOXDensity1}
+\end{center}
+\end{figure}
+
+\noindent
+The point's scale color is correct, but the density plot (Fig.~\ref{fig:NOXDensity1}) is a little biased by the number of the monitoring station located in the area: there are darker zones where there are more station. 
+\\The graphs are still correct because we have darker zones where the values are higher, in both cases.
+\\The color scale is only used to understand the concentration level of the substance in the air, it does not provide information on whether or not the limit imposed by law is respected.
+
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NOX/annualDensityNOXZone.pdf}
+    \caption{Annual Average NOX by Zone}
+    \label{fig:NOXDensity2}
+\end{center}
+\end{figure}
+
+\noindent
+To obtain this second graph (Fig.~\ref{fig:NOXDensity2}) i only calculated the average between stations located in the same zone. The first graph shows the annual average for each station, in this one the values has been summarized for each area. The colors and values reflect those visible in the previous graph.
+
+
+
+
+
+\newpage
+\subsubsection{Nitric oxide (NO)}
+\noindent
+\\For nitric oxides i didn't find a limit established by law, so i simply plotted two density maps showing the average yearly value for every station and the average yearly value for every zone, in order to see which zones have the higher concentration.
+
+
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NO/annualDensityNOStation.pdf}
+    \caption{Annual Average NO by station}
+    \label{fig:NODensity}
+\end{center}
+\end{figure}
+
+\noindent
+The point's scale color is correct, but the density plot (Fig.~\ref{fig:NODensity}) is a little biased by the number of the monitoring station located in the area: there are darker zones where there are more station. 
+\\The graphs are still correct because we have darker zones where the values are higher, in both cases.
+\\The color scale is only used to understand the concentration level of the substance in the air, it does not provide information on whether or not the limit imposed by law is respected.
+
+\begin{figure}[H]
+\begin{center}
+    \includegraphics[width=\linewidth]{File/AnalisiDati/NO/annualDensityNOZone.pdf}
+    \caption{Annual Average NO by Zone}
+    \label{fig:NODensity2}
+\end{center}
+\end{figure}
+
+\noindent
+To obtain this second graph (Fig.~\ref{fig:NODensity2}) i only calculated the average between stations located in the same zone. The first graph shows the annual average for each station, in this one the values has been summarized for each area. The colors and values reflect those visible in the previous graph.
+
+
+
+
+
+
+
+

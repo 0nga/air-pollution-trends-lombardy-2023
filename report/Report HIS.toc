@@ -1,0 +1,41 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Problem description}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Dataset and features}{3}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Goals}{5}{subsection.1.3}%
+\contentsline {section}{\numberline {2}Data Preprocessing}{6}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Dataset import and analysis}{6}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Failed Detection}{7}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Duplicate instances}{8}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Data manipulation}{8}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Dataset's merge}{10}{subsection.2.5}%
+\contentsline {section}{\numberline {3}Data Analysis}{12}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Plotting Datas}{12}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Analysis by substance}{14}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Lead (Pb) - Arsenic (As) - Cadmium (Cd) - Nikel (Ni)}{14}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}BlackCarbon}{15}{subsubsection.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.2.3}PM10}{16}{subsubsection.3.2.3}%
+\contentsline {subsubsection}{\numberline {3.2.4}PM2.5}{20}{subsubsection.3.2.4}%
+\contentsline {subsubsection}{\numberline {3.2.5}Nitrogen dioxide (NO2)}{23}{subsubsection.3.2.5}%
+\contentsline {subsubsection}{\numberline {3.2.6}Sulfur dioxide (SO2)}{27}{subsubsection.3.2.6}%
+\contentsline {subsubsection}{\numberline {3.2.7}Ozone (O3)}{30}{subsubsection.3.2.7}%
+\contentsline {subsubsection}{\numberline {3.2.8}Carbon oxide (CO)}{33}{subsubsection.3.2.8}%
+\contentsline {subsubsection}{\numberline {3.2.9}Benzene (C6H6)}{34}{subsubsection.3.2.9}%
+\contentsline {subsubsection}{\numberline {3.2.10}Ammonia (NH3)}{37}{subsubsection.3.2.10}%
+\contentsline {subsubsection}{\numberline {3.2.11}Nitrogen oxides (NOX)}{40}{subsubsection.3.2.11}%
+\contentsline {subsubsection}{\numberline {3.2.12}Nitric oxide (NO)}{42}{subsubsection.3.2.12}%
+\contentsline {subsection}{\numberline {3.3}Analysis by Zone}{44}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.1}Brescia (BS)}{44}{subsubsection.3.3.1}%
+\contentsline {subsubsection}{\numberline {3.3.2}Bergamo (BG)}{45}{subsubsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.3.3}Como (CO)}{46}{subsubsection.3.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.4}Cremona (CR)}{47}{subsubsection.3.3.4}%
+\contentsline {subsubsection}{\numberline {3.3.5}Lecco (LC)}{48}{subsubsection.3.3.5}%
+\contentsline {subsubsection}{\numberline {3.3.6}Lodi (LO)}{49}{subsubsection.3.3.6}%
+\contentsline {subsubsection}{\numberline {3.3.7}Monza-Brianza (MB)}{50}{subsubsection.3.3.7}%
+\contentsline {subsubsection}{\numberline {3.3.8}Milano (MI)}{51}{subsubsection.3.3.8}%
+\contentsline {subsubsection}{\numberline {3.3.9}Mantova (MN)}{52}{subsubsection.3.3.9}%
+\contentsline {subsubsection}{\numberline {3.3.10}Pavia (PV)}{53}{subsubsection.3.3.10}%
+\contentsline {subsubsection}{\numberline {3.3.11}Sondrio (SO)}{54}{subsubsection.3.3.11}%
+\contentsline {subsubsection}{\numberline {3.3.12}Varese (VA)}{55}{subsubsection.3.3.12}%
+\contentsline {subsection}{\numberline {3.4}Air Quality Index}{56}{subsection.3.4}%
+\contentsline {section}{\numberline {4}Conclusions}{57}{section.4}%

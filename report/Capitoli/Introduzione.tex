@@ -1,0 +1,54 @@
+\section{Introduction}
+
+\subsection{Problem description}
+The ARPA Lombardia air quality detection network is made up of fixed stations which, by means of automatic analysers, provide continuous data at regular time intervals. The pollutant species monitored continuously are Lead (Pb), Arsenic (As), 
+Cadmium (Cd), Nickel (Ni), Black Carbon, Nitrogen oxides (NOX), Nitrogen dioxide (NO2), Nitric oxide (NO), Sulfur dioxide (SO2), Carbon oxide (CO), Ozone (O3), PM10, PM2.5, Benzene (C6H6), Ammonia (NH3). Depending on the environmental context in which monitoring is active, the type of pollutants that need to be detected is different. Therefore, not all stations are equipped with the same analytical instrumentation. The regional stations are distributed throughout the regional territory according to the population density and the type of territory respecting the criteria defined by Legislative Decree 155/2010. 
+
+\subsection{Dataset and features}
+This analysis was done using 4 datasets:
+
+\begin{itemize}
+	\item the first one\cite{ARPA Air Quality Dataset}, cointaining the detections of harmful substances in the air of the Lombardy region carried out during the year 2023. This dataset is made up of 5 attributes:
+	\begin{itemize}
+		\item \textbf{IdSensore}: Unique identifier that distinguishes the sensor
+		\item \textbf{Data}: date and time
+		\item \textbf{Valore}: -9999 = invalid data. The absence of a record indicates that the data is not available
+		\item \textbf{Stato}: VA = valid data; NA = invalid data. The data in this archive, relating to the current year, still contain uncertain values which may undergo changes following validation processes based on statistical analyzes of the measured series. The data validation process includes a final evaluation phase which ends by March 30th of the year following the measurement year. Therefore, prior to that date, the data must be considered non-definitive.		
+		\item \textbf{idOperatore}: 1 is the only value 
+	\end{itemize}
+	and contains 2.62 million instances (single detections).	 
+	
+	\item the second dataset\cite{ARPA Air Quality Dataset 2}, with the same format as the first one, which contains the detections of harmful substances in the air of the Lombardy region carried out between 2018 and 2023. I only took those relating to the current year (2023), subsequently combining them with the first dataset, in in order to obtain a bigger dataset.
+	
+	\item A third and fourth datasets\cite{ARPA Monitoring Station Dataset}, containing the list and position of monitoring stations and sensors. Consisting of 16 attributes:
+	\begin{itemize}
+		\item \textbf{IdSensore}: Unique identifier that distinguishes the sensor
+		\item \textbf{NomeTipoSensore}: type of pollutant detected in the air (Biossido di Azoto, Biossido di Zolfo, Ozono, Monossido di Carbonio, Benzene, Ossidi di Azoto, PM10 (SM2005), Particelle sospese PM2.5, Ammoniaca, Nikel, Arsenico, Cadmio, Piombo, BlackCarbon, Monossido di Azoto)
+		\item \textbf{UnitaMisura}: measurement unit of the detected substance
+		\item \textbf{Idstazione}: unique identifier that distinguishes the monitoring station
+		\item \textbf{NomeStazione}: name of the monitoring station
+		\item \textbf{Quota}: elevation at which the monitoring station is located
+		\item \textbf{Provincia}: province in which the monitoring station is located
+		\item \textbf{Comune}: municipality in which the monitoring station is located
+		\item \textbf{Storico}
+		\item \textbf{DataStart}: monitoring station's inauguration date
+		\item \textbf{DataStop}: monitoring station's closing date
+		\item \textbf{Utm\_Nord}: UTM North coordinate
+		\item \textbf{UTM\_Est}: UTM East coordinate
+		\item \textbf{lat}: latitude
+		\item \textbf{lng}: longitude
+		\item \textbf{location}: union of latitude and longitude
+	\end{itemize}
+	and containing 970 + 233 sensors divided into 174 detection stations located in the Lombardy region.
+\end{itemize}
+
+
+
+\subsection{Goals}
+Perform an analysis on the data contained in the dataset.
+\\Main objectives:
+\begin{itemize}
+	\item Check compliance with the concentration limits established by law for the substances detected in the air
+	\item Graph the pollutant's trend in the air during the months of 2023 for each province and make comparisons
+	\item Draw up a ranking of the more or less polluted provinces by calculating the AQIs and comparing them
+\end{itemize}

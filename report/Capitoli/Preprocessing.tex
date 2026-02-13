@@ -1,0 +1,235 @@
+\section{Data Preprocessing}
+
+\subsection{Dataset import and analysis}
+
+\noindent 
+Import the two dataset (same format) containing the data about the susbtance detection.
+
+\medskip
+\begin{lstlisting}[language=r]
+dati2023 <- read.csv("dati/Dati_sensori_aria_2023.csv")
+dati2018 <- read.csv("dati/Dati_sensori_aria_dal_2018.csv")
+
+head(dati2023)
+\end{lstlisting}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{File/Preprocessing/headRawAir.png}
+\caption{Raw Air Data Lookalike}
+\end{center}
+\end{figure}
+
+\noindent
+Convert the data attribute and filtered the 2023's instances, then merged the two datasets into a single one:
+
+\medskip
+\begin{lstlisting}[language=r]
+# the two dataset have different format for the date
+
+# convert time in a 24h format and POSIXlt object
+dati2018$Data  <- strptime(dati2018$Data, format = "%m/%d/%Y %I:%M:%S %p")
+
+# convert time in a 24h format and POSIXlt object
+dati2023$Data  <- strptime(dati2023$Data, format = "%d/%m/%Y %I:%M:%S %p")
+
+# filter 2023 datas
+dati23 <- subset(dati2018, format(Data, "%Y") == "2023")
+dati2023 <- subset(dati2023, format(Data, "%Y") == "2023")
+
+# Dataset concatenation
+airData <- rbind(dati2023, dati23)
+
+# check on the year
+unique(format(airData$Data, "%Y")) 
+\end{lstlisting}
+
+\noindent
+Import the two dataset containing the data about detection's station.
+
+\medskip
+\begin{lstlisting}[language=r]
+# import station dataset
+stationData1 <- read.csv("dati/Stazioni_qualit__dell_aria_2024.csv")
+stationData2 <- read.csv("dati/Stazioni_qualit__dell_aria_NRT_2024.csv")
+head(stationData1)
+\end{lstlisting}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{File/Preprocessing/headRawStation.png}
+\caption{Raw Station Data Lookalike}
+\end{center}
+\end{figure}
+
+\noindent
+Concatenate them in a single dataset
+
+\medskip
+\begin{lstlisting}[language=r]
+# convert from integer to character
+stationData2$Quota <- as.character(stationData2$Quota)
+
+# concatenation
+stationData <- bind_rows(stationData1, stationData2)
+\end{lstlisting}
+
+\subsection{Failed Detection}
+\noindent
+I checked for the presence of detections with errors within the first dataset.
+
+\medskip
+\begin{lstlisting}[language=r]
+nrow(airData[airData$Valore == -9999.0,])
+\end{lstlisting}
+\noindent
+That instruction returns ``73174'' $\rightarrow$ the number of detections in which the sensor had a malfunction, i simply remove them from the dataset:
+
+\medskip
+\begin{lstlisting}[language=r]
+# save the instance with errors to study them
+errorSensor <- airData[airData$Valore == -9999.0,]
+
+# removing from the dataset
+airData <- airData[airData$Valore != -9999.0,]
+\end{lstlisting}
+
+\subsection{Duplicate instances}
+\noindent
+I check for duplicate instances within both datasets.
+
+\medskip
+\begin{lstlisting}[language=R]
+library("dplyr") # contains function distinct()
+
+nrow(distinct(airData)) == nrow(airData)
+length(unique(stationData$IdSensore)) == nrow((stationData))
+\end{lstlisting}
+
+\noindent
+Both instruction return FALSE $\rightarrow$ there are duplicate instances in both datasets.
+I remove them using:
+
+\medskip
+\begin{lstlisting}[language=r]
+airData <- airData %>% distinct()
+stationData <- stationData %>% distinct(IdSensore, .keep_all = TRUE)
+\end{lstlisting}
+
+\subsection{Data manipulation}
+\noindent
+Create a new attribute to clarify which of the station are still open and which are already closed 
+
+\medskip
+\begin{lstlisting}[language=r]
+stationData$Open <- ifelse((stationData$DataStop == "" | 
+                        is.na(stationData$DataStop)), "YES", "NO")
+\end{lstlisting}
+
+\noindent
+and plotted all the station, using a geoJSON file\cite{Lombardy GEOJSON}
+
+\medskip
+\begin{lstlisting}[language=R]
+library(sf)
+library(osmdata)
+library(ggmap)
+
+# Read the GeoJSON Shapefile
+lombardia_provinces <- st_read("lombardy_.geojson")
+
+ggplot() +
+geom_sf(data = lombardia_provinces, fill = "lightblue", color = "black") +
+# Add points from stationData
+geom_point(data = stationData, aes(x = lng, y = lat), color = "red", size = 2) +  
+theme_minimal()
+\end{lstlisting}
+
+\begin{figure}[H]
+\begin{center}
+  \includegraphics[width=\textwidth]{File/Preprocessing/detectionStation.pdf}
+  \caption{Detection Station}
+  \label{fig:detectionStation}
+\end{center}
+\end{figure}
+
+\medskip\noindent
+\textbf{Air Quality Index}\cite{Air Quality Index}
+\\The air quality index (IQA) is an indicator that allows us to provide an immediate and synthetic estimate of the air's state. 
+For the definition of this indicator, currently, in Italy and Europe, it is possible to use different formulations that take into account the measured, estimated or predicted concentrations of a variable number of pollutants that have effects, especially of a respiratory, cardiac and cardiovascular nature, on health.
+
+\begin{table}[t]
+  \centering
+  \begin{tabular}{lccccc}
+    \toprule
+    & \textbf{Very good} & \textbf{Good} & \textbf{Acceptable} & \textbf{Poor} & \textbf{Very poor} \\
+    \midrule
+    \textbf{PM2.5} & 0-10 & 10-20 & 20-25 & 25-50 & 50-800 \\
+    \textbf{PM10} & 0-20 & 20-35 & 35-50 & 50-100 & 100-1200 \\
+    \textbf{NO2} & 0-40 & 40-100 & 100-200 & 200-400 & 400-1000 \\
+    \textbf{O3} & 0-80 & 80-120 & 120-180 & 180-240 & 240-600 \\
+    \textbf{SO2} & 0-100 & 100-200 & 200-350 & 350-500 & 500-1250 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Air quality status for AQI calculation}
+  \label{tab:air_quality}
+\end{table}
+
+\noindent
+The following parameters are defined for each pollutant:
+\begin{itemize}
+	\item for PM10 particulate matter, the daily average;
+	\item for PM2.5 particulate matter, the daily average;
+	\item for biossido di azoto the hourly maximum;
+	\item for ozono, the hourly maximum;
+	\item for biossido di zolfo, the hourly maximum.
+\end{itemize}
+The air quality state is attributed to each pollutant on the basis of the value assumed by the parameter according to the thresholds shown in the table (fig. 4). The overall IQA corresponds to the worst among those evaluated on the 5 pollutants.
+
+\subsection{Dataset's merge}
+I merge the two datasets using the attribute ``IdSensore''.
+
+\medskip
+\begin{lstlisting}[language=r]
+fullData <- merge(airData, stationData, by = "IdSensore")
+
+#save the lost instances
+lostInstances <- anti_join(airData, fullData, by = "IdSensore")
+\end{lstlisting}
+
+\noindent
+6967 instances are lost in the merging operation, there are three Id Sensor that cannot be found, so all the instances for these are lost. \\I tried to find more dataset containing the detection station but i only found the two that have been used in this report.
+\\ I used the function 
+
+\medskip
+\begin{lstlisting}[language=r]
+str(fullData)
+\end{lstlisting}
+\noindent
+to see the variable's type of all the attributes of the dataset, in order to be able to modify them, according to my needs.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{File/Preprocessing/fullDataClass.png}
+\caption{Variable type for fullData's attribute}
+\end{center}
+\end{figure}
+
+\noindent
+I created a new variable (i called it ``Sigla'') containing the chemical formula corresponding to the substance.
+
+\medskip
+\begin{lstlisting}[language=r]
+# create a table of correspondence between the values and the acronyms
+tabella_corrispondenza <- data.frame(
+  NomeTipoSensore = c("Ammoniaca", "Arsenico", "Benzene","Biossido di Azoto","Biossido di Zolfo","Black Carbon","Cadmio","Monossido di Azoto","Monossido di Carbonio", "Nikel", "Ossidi di Azoto", "Ozono", "Piombo", "Particelle sospese PM2.5", "PM10 (SM2005)"),
+  Sigla = c("NH3", "As", "C6H6", "NO2", "SO2", "BC", "Cd", "NO", "CO", "Ni", "NOX", "O3", "Pb", "PM2.5", "PM10")
+)
+
+# join the correspondence table to the dataset to add the 'acronym' column
+fullData <- merge(fullData, tabella_corrispondenza, by = "NomeTipoSensore", all.x = TRUE)
+\end{lstlisting}
+
+
+
+

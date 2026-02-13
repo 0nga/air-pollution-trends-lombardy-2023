@@ -1,0 +1,384 @@
+\subsection{Analysis by Zone}
+I divided the data by area, for each area i created a graph that shows the trends of each substance during the months of 2023 and also a correlation matrix showing the correlation between each substance.
+
+\subsubsection{Brescia (BS)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/BSTrend.pdf}
+\caption{Brescia Trend in 2023}
+\label{fig:BSTrend}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+  \small
+  \begin{tabularx}{\textwidth}{*{10}{>{\centering\arraybackslash}X}}
+    \toprule
+    & C6H6 & NO2 & SO2 & NO & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    C6H6 & 1 & 0.92 & 0.73 & 0.96 & 0.86 & 0.99 & -0.95 & 0.74 & 0.82 \\
+    NO2 & 0.92 & 1 & 0.74 & 0.8 & 0.88 & 0.90 & -0.92 & 0.89 & 0.91 \\
+    SO2 & 0.73 & 0.74 & 1 & 0.70 & 0.79 & 0.75 & -0.64 & 0.77 & 0.79 \\
+    NO & 0.96 & 0.80 & 0.70 & 1 & 0.74 & 0.98 & -0.86 & 0.60 & 0.70 \\
+    CO & 0.86 & 0.88 & 0.79 & 0.74 & 1 & 0.81 & -0.84 & 0.83 & 0.90 \\
+    NOX & 0.99 & 0.90 & 0.75 & 0.98 & 0.81 & 1 & -0.92 & 0.72 & 0.80 \\
+    O3 & -0.95 & -0.92 & -0.64 & -0.86 & -0.84 & -0.92 & 1 & -0.71 & -0.77 \\
+    PM10 & 0.74 & 0.89 & 0.77 & 0.60 & 0.83 & 0.72 & -0.71 & 1 & 0.98 \\
+    PM2.5 & 0.82 & 0.91 & 0.79 & 0.70 & 0.90 & 0.80 & -0.77 & 0.98 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix BS}
+  \label{tab:correlation_matrix_BS}
+\end{table}
+
+
+\subsubsection{Bergamo (BG)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/BGTrend.pdf}
+\caption{Bergamo Trend in 2023}
+\label{fig:BGTrend}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+  \small
+  \begin{tabularx}{\textwidth}{*{10}{>{\centering\arraybackslash}X}}
+    \toprule
+    & NH3 & C6H6 & NO2 & SO2 & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    NH3 & 1 & 0.03 & 0.07 & 0.12 & -0.24 & -0.19 & 0.12 & 0.31 & 0.30 \\
+    C6H6 & 0.03 & 1 & 0.95 & 0.95 & 0.92 & 0.92 & -0.87 & 0.85 & 0.90 \\
+    NO2 & 0.07 & 0.95 & 1 & 0.89 & 0.90 & 0.94 & -0.92 & 0.91 & 0.93 \\
+    SO2 & 0.12 & 0.95 & 0.89 & 1 & 0.85 & 0.84 & -0.81 & 0.82 & 0.87 \\
+    CO & -0.24 & 0.92 & 0.90 & 0.85 & 1 & 0.97 & -0.91 & 0.78 & 0.79 \\
+    NOX & -0.19 & 0.92 & 0.94 & 0.84 & 0.97 & 1 & -0.90 & 0.82 & 0.84 \\
+    O3 & 0.12 & -0.87 & -0.92 & -0.81 & -0.91 & -0.90 & 1 & -0.73 & -0.75 \\
+    PM10 & 0.31 & 0.85 & 0.91 & 0.82 & 0.78 & 0.82 & -0.73 & 1 & 0.98 \\
+    PM2.5 & 0.30 & 0.90 & 0.93 & 0.87 & 0.79 & 0.84 & -0.75 & 0.98 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix BG}
+  \label{tab:correlation_matrix_BG}
+\end{table}
+
+
+
+\subsubsection{Como (CO)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/COTrend.pdf}
+\caption{Como Trend in 2023}
+\label{fig:COTrend}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+    \small
+  \begin{tabularx}{\textwidth}{*{9}{>{\centering\arraybackslash}X}}
+    \toprule
+    & C6H6 & NO2 & SO2 & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    C6H6 & 1 & 0.95 & 0.52 & 0.96 & 0.98 & -0.89 & 0.85 & 0.84 \\
+    NO2 & 0.95 & 1 & 0.36 & 0.91 & 0.96 & -0.93 & 0.90 & 0.89 \\
+    SO2 & 0.52 & 0.36 & 1 & 0.59 & 0.44 & -0.40 & 0.42 & 0.34 \\
+    CO & 0.96 & 0.91 & 0.59 & 1 & 0.96 & -0.86 & 0.84 & 0.79 \\
+    NOX & 0.98 & 0.96 & 0.44 & 0.96 & 1 & -0.91 & 0.82 & 0.80 \\
+    O3 & -0.89 & -0.93 & -0.40 & -0.86 & -0.91 & 1 & -0.76 & -0.73 \\
+    PM10 & 0.85 & 0.90 & 0.42 & 0.84 & 0.82 & -0.76 & 1 & 0.98 \\
+    PM2.5 & 0.84 & 0.89 & 0.34 & 0.79 & 0.80 & -0.73 & 0.98 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix CO}
+  \label{tab:correlation_matrix_CO}
+\end{table}
+
+
+\subsubsection{Cremona (CR)}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/CRTrend.pdf}
+\caption{Cremona Trend in 2023}
+\label{fig:CRTrend}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+    \small
+  \begin{tabularx}{\textwidth}{*{10}{>{\centering\arraybackslash}X}}
+    \toprule
+    & NH3 & C6H6 & NO2 & SO2 & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    NH3 & 1 & -0.48 & -0.24 & 0.18 & -0.41 & -0.38 & 0.31 & 0.06 & -0.18 \\
+    C6H6 & -0.48 & 1 & 0.94 & 0.65 & 0.99 & 0.99 & -0.92 & 0.72 & 0.85 \\
+    NO2 & -0.24 & 0.94 & 1 & 0.77 & 0.94 & 0.95 & -0.94 & 0.88 & 0.93 \\
+    SO2 & 0.18 & 0.65 & 0.77 & 1 & 0.62 & 0.67 & -0.67 & 0.66 & 0.62 \\
+    CO & -0.41 & 0.99 & 0.94 & 0.62 & 1 & 0.99 & -0.90 & 0.79 & 0.90 \\
+    NOX & -0.38 & 0.99 & 0.95 & 0.67 & 0.99 & 1 & -0.92 & 0.77 & 0.88 \\
+    O3 & 0.31 & -0.92 & -0.94 & -0.67 & -0.90 & -0.92 & 1 & -0.79 & -0.85 \\
+    PM10 & 0.06 & 0.72 & 0.88 & 0.66 & 0.79 & 0.77 & -0.79 & 1 & 0.97 \\
+    PM2.5 & -0.18 & 0.85 & 0.93 & 0.62 & 0.90 & 0.88 & -0.85 & 0.97 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix CR}
+  \label{tab:correlation_matrix_CR}
+\end{table}
+
+\subsubsection{Lecco (LC)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/LCTrend.pdf}
+\caption{Lecco Trend in 2023}
+\label{fig:LCTrend}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+    \small
+  \begin{tabularx}{\textwidth}{*{11}{>{\centering\arraybackslash}X}}
+    \toprule
+    & NH3 & C6H6 & NO2 & SO2 & NO & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    NH3 & 1 & 0.18 & 0.22 & 0.25 & -0.05 & 0.23 & 0.20 & -0.03 & 0.38 & 0.28 \\
+    C6H6 & 0.18 & 1 & 0.71 & -0.20 & -0.27 & 0.54 & 0.60 & -0.58 & 0.74 & 0.73 \\
+    NO2 & 0.22 & 0.72 & 1 & 0.07 & -0.24 & 0.92 & 0.96 & -0.87 & 0.82 & 0.89 \\
+    SO2 & 0.25 & -0.20 & 0.07 & 1 & -0.18 & 0.26 & 0.09 & 0.20 & 0.09 & 0.12 \\
+    NO & -0.05 & -0.27 & -0.24 & -0.18 & 1 & -0.15 & -0.04 & -0.04 & -0.41 & -0.42 \\
+    CO  & 0.23 & 0.54 & 0.92 & 0.26 & -0.15 & 1 & 0.95 & -0.74 & 0.69 & 0.78 \\
+    NOX & 0.20 & 0.60 & 0.96 & 0.09 & -0.04 & 0.95 & 1 & -0.88 & 0.68 & 0.77 \\
+    O3 & -0.03 & -0.58 & -0.87 & 0.20 & -0.04 & -0.74 & -0.88 & 1 & -0.55 & -0.65 \\
+    PM10 & 0.38 & 0.74 & 0.82 & 0.09 & -0.41 & 0.69 & 0.68 & -0.55 & 1 & 0.98 \\
+    PM2.5 & 0.28 & 0.73 & 0.89 & 0.12 & -0.42 & 0.78 & 0.77 & -0.65 & 0.98 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix LC}
+  \label{tab:correlation_matrix_LC}
+\end{table}
+
+\subsubsection{Lodi (LO)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/LOTrend.pdf}
+\caption{Lodi Trend in 2023}
+\label{fig:LOTrend}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+    \small
+  \begin{tabularx}{\textwidth}{*{10}{>{\centering\arraybackslash}X}}
+    \toprule
+    & NH3 & C6H6 & NO2 & SO2 & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    NH3 & 1 & -0.38 & -0.10 & 0.11 & -0.15 & -0.35 & 0.22 & 0.16 & -0.09 \\
+    C6H6 & -0.38 & 1 & 0.94 & 0.51 & 0.75 & 0.98 & -0.93 & 0.79 & 0.86 \\
+    NO2 & -0.10 & 0.94 & 1 & 0.60 & 0.77 & 0.94 & -0.94 & 0.89 & 0.89 \\
+    SO2 & 0.11 & 0.51 & 0.60 & 1 & 0.16 & 0.42 & -0.52 & 0.66 & 0.64 \\
+    CO & -0.15 & 0.75 & 0.77 & 0.16 & 1 & 0.82 & -0.73 & 0.64 & 0.61 \\
+    NOX & -0.35 & 0.98 & 0.94 & 0.42 & 0.82 & 1 & -0.92 & 0.77 & 0.83 \\
+    O3 & 0.22 & -0.93 & -0.94 & -0.52 & -0.73 & -0.92 & 1 & -0.76 & -0.76 \\
+    PM10 & 0.16 & 0.79 & 0.89 & 0.66 & 0.64 & 0.77 & -0.76 & 1 & 0.96 \\
+    PM2.5 & -0.09 & 0.86 & 0.89 & 0.64 & 0.61 & 0.83 & -0.76 & 0.96 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix LO}
+  \label{tab:correlation_matrix_LO}
+\end{table}
+
+
+\subsubsection{Monza-Brianza (MB)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/MBTrend.pdf}
+\caption{Monza-Brianza Trend in 2023}
+\label{fig:MBTrend}
+\end{figure}
+
+
+\begin{table}[h]
+  \centering
+    \small
+ % \begin{tabular}{l*{7}{c}}
+  \begin{tabularx}{\textwidth}{*{8}{>{\centering\arraybackslash}X}}
+    \toprule
+    & NO2 & SO2 & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    NO2 & 1 & 0.83 & - & 0.84 & -0.9 & 0.91 & 0.93 \\
+    SO2 & 0.83 & 1 & - & 0.68 & -0.76 & 0.84 & 0.86 \\
+    CO & - & - & 1 & - & - & - & - \\
+    NOX & 0.84 & 0.68 & - & 1 & -0.88 & 0.85 & 0.91 \\
+    O3 & -0.9 & -0.76 & - & -0.88 & 1 & -0.81 & -0.9 \\
+    PM10 & 0.91 & 0.84 & - & 0.85 & -0.81 & 1 & 0.98 \\
+    PM2.5 & 0.93 & 0.86 & - & 0.91 & -0.9 & 0.98 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix MB}
+  \label{tab:correlation_matrix_MB}
+\end{table}
+
+\subsubsection{Milano (MI)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/MITrend.pdf}
+\caption{Milano Trend in 2023}
+\label{fig:MITrend}
+\end{figure}
+
+
+
+\begin{table}[h]
+  \centering
+    \small
+  \begin{tabularx}{\textwidth}{*{11}{>{\centering\arraybackslash}X}}
+    \toprule
+    & NH3 & C6H6 & NO2 & SO2 & BC & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    NH3 & 1 & -0.68 & -0.62 & -0.12 & -0.67 & -0.63 & -0.72 & 0.67 & -0.41 & -0.53 \\
+    C6H6 & -0.68 & 1 & 0.96 & -0.09 & 0.96 & 0.96 & 0.97 & -0.93 & 0.91 & 0.96 \\
+    NO2 & -0.62 & 0.96 & 1 & -0.1 & 0.9 & 0.94 & 0.92 & -0.94 & 0.93 & 0.92 \\
+    SO2 & -0.12 & -0.09 & -0.1 & 1 & -0.19 & -0.18 & -0.2 & 0.2 & -0.15 & -0.15 \\
+    BC & -0.67 & 0.96 & 0.9 & -0.19 & 1 & 0.97 & 0.99 & -0.89 & 0.89 & 0.96 \\
+    CO & -0.63 & 0.96 & 0.94 & -0.18 & 0.97 & 1 & 0.98 & -0.94 & 0.91 & 0.94 \\
+    NOX & -0.72 & 0.97 & 0.92 & -0.2 & 0.99 & 0.98 & 1 & -0.92 & 0.87 & 0.94 \\
+    O3 & 0.67 & -0.93 & -0.94 & 0.2 & -0.89 & -0.94 & -0.92 & 1 & -0.83 & -0.84 \\
+    PM10 & -0.41 & 0.91 & 0.93 & -0.15 & 0.89 & 0.91 & 0.87 & -0.83 & 1 & 0.97 \\
+    PM2.5 & -0.53 & 0.96 & 0.92 & -0.15 & 0.96 & 0.94 & 0.94 & -0.84 & 0.97 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix MI}
+  \label{tab:correlation_matrix_MI}
+\end{table}
+
+
+\subsubsection{Mantova (MN)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/MNTrend.pdf}
+\caption{Mantova Trend in 2023}
+\label{fig:MNTrend}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+    \small
+  \begin{tabularx}{\textwidth}{*{10}{>{\centering\arraybackslash}X}}
+    \toprule
+    & NH3 & C6H6 & NO2 & SO2 & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    NH3 & 1 & -0.28 & 0 & -0.14 & -0.3 & -0.11 & 0.19 & 0.22 & 0.02 \\
+    C6H6 & -0.28 & 1 & 0.93 & 0.63 & 0.99 & 0.93 & -0.92 & 0.76 & 0.85 \\
+    NO2 & 0 & 0.93 & 1 & 0.68 & 0.92 & 0.94 & -0.93 & 0.83 & 0.87 \\
+    SO2 & -0.14 & 0.63 & 0.68 & 1 & 0.66 & 0.63 & -0.59 & 0.51 & 0.54 \\
+    CO & -0.3 & 0.99 & 0.92 & 0.66 & 1 & 0.9 & -0.88 & 0.76 & 0.86 \\
+    NOX & -0.11 & 0.93 & 0.94 & 0.63 & 0.9 & 1 & -0.94 & 0.69 & 0.77 \\
+    O3 & 0.19 & -0.92 & -0.93 & -0.59 & -0.88 & -0.94 & 1 & -0.63 & -0.7 \\
+    PM10 & 0.22 & 0.76 & 0.83 & 0.51 & 0.76 & 0.69 & -0.63 & 1 & 0.97 \\
+    PM2.5 & 0.02 & 0.85 & 0.87 & 0.54 & 0.86 & 0.77 & -0.7 & 0.97 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix MN}
+  \label{tab:correlation_matrix_MN}
+\end{table}
+
+
+\subsubsection{Pavia (PV)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/PVTrend.pdf}
+\caption{Pavia Trend in 2023}
+\label{fig:PVTrend}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+   \small
+  \begin{tabularx}{\textwidth}{*{10}{>{\centering\arraybackslash}X}}
+    \toprule
+    & NH3 & C6H6 & NO2 & SO2 & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    NH3 & 1 & -0.02 & -0.07 & -0.72 & -0.02 & -0.23 & 0.11 & 0.21 & 0.07 \\
+    C6H6 & -0.02 & 1 & 0.95 & 0.07 & 0.94 & 0.9 & -0.93 & 0.81 & 0.92 \\
+    NO2 & -0.07 & 0.95 & 1 & 0.19 & 0.96 & 0.96 & -0.96 & 0.85 & 0.92 \\
+    SO2 & -0.72 & 0.07 & 0.19 & 1 & 0.03 & 0.38 & -0.09 & -0.13 & 0.03 \\
+    CO & -0.02 & 0.94 & 0.96 & 0.03 & 1 & 0.92 & -0.97 & 0.9 & 0.94 \\
+    NOX  & -0.23 & 0.9 & 0.96 & 0.38 & 0.92 & 1 & -0.93 & 0.77 & 0.86 \\
+    O3 & 0.11 & -0.93 & -0.96 & -0.09 & -0.97 & -0.93 & 1 & -0.82 & -0.87 \\
+    PM10 & 0.21 & 0.81 & 0.85 & -0.13 & 0.9 & 0.77 & -0.82 & 1 & 0.96 \\
+    PM2.5 & 0.07 & 0.92 & 0.92 & 0.03 & 0.94 & 0.86 & -0.87 & 0.96 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix PV}
+  \label{tab:correlation_matrix_PV}
+\end{table}
+
+
+\subsubsection{Sondrio (SO)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/SOTrend.pdf}
+\caption{Sondrio Trend in 2023}
+\label{fig:SOTrend}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+    \small
+  \begin{tabularx}{\textwidth}{*{13}{>{\centering\arraybackslash}X}}
+    \toprule
+    & C6H6 & NO2 & SO2 & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    C6H6 & 1 & 0.86 & 0.54 & 0.96 & 0.95 & -0.86 & 0.7 & 0.79\\
+    NO2  & 0.86 & 1 & 0.75 & 0.89 &  0.96 & -0.81 & 0.93 & 0.98 \\
+    SO2 & 0.54 & 0.75 & 1 & 0.65 &  0.7 & -0.71 & 0.77 & 0.76\\
+    CO & 0.96 & 0.89 & 0.65 & 1 &  0.97 & -0.79 & 0.76 & 0.85\\
+    NOX & 0.95 & 0.96 & 0.7 & 0.97 & 1 & -0.84 & 0.86 & 0.93\\
+    O3 & -0.86 & -0.81 & -0.71 & -0.79 & -0.84 & 1 & -0.71 & -0.73\\
+    PM10 & 0.7 & 0.93 & 0.77 & 0.76 & 0.86 & -0.71 & 1 & 0.98\\
+    PM2.5 & 0.79 & 0.98 & 0.76 & 0.85 & 0.93 & -0.73 & 0.98 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix SO}
+  \label{tab:correlation_matrix_SO}
+\end{table}
+
+\subsubsection{Varese (VA)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{File/AnalisiDati/Province/VATrend.pdf}
+\caption{Varese Trend in 2023}
+\label{fig:VATrend}
+\end{figure}
+
+
+\begin{table}[h]
+  \centering
+    \small
+  \begin{tabularx}{\textwidth}{*{8}{>{\centering\arraybackslash}X}}
+    \toprule
+    & NO2 & SO2 & CO & NOX & O3 & PM10 & PM2.5 \\
+    \midrule
+    NO2 & 1 & 0.69 & 0.87 & 0.95 & -0.95 & 0.84 & 0.85 \\
+    SO2 & 0.69 & 1 & 0.56 & 0.71 & -0.79 & 0.35 & 0.34 \\
+    CO & 0.87 & 0.56 & 1 & 0.94 & -0.75 & 0.77 & 0.82 \\
+    NOX & 0.95 & 0.71 & 0.94 & 1 & -0.9 & 0.78 & 0.83 \\
+    O3 & -0.95 & -0.79 & -0.75 & -0.9 & 1 & -0.76 & -0.76 \\
+    PM10 & 0.84 & 0.35 & 0.77 & 0.78 & -0.76 & 1 & 0.98 \\
+    PM2.5 & 0.85 & 0.34 & 0.82 & 0.83 & -0.76 & 0.98 & 1 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Correlation Matrix VA}
+  \label{tab:correlation_matrix_VA}
+\end{table}
+
+

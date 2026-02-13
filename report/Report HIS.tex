@@ -1,0 +1,85 @@
+ \documentclass[a4paper,12pt]{article}
+
+% Packages for customization
+\usepackage{graphicx}  % For including images
+\usepackage{float}     % Improved float placement
+\usepackage{amsmath}   % For mathematical symbols and equations
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[hidelinks]{hyperref}
+\usepackage{wrapfig}
+\usepackage{caption}
+\usepackage{fancyvrb} %for verbatim tabs
+\usepackage{tocloft}
+\usepackage{comment} 
+
+% for tables
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{array} % For better column formatting
+\usepackage{tabularx} % For more flexible tables
+\usepackage{xcolor}
+
+% page styles
+\usepackage{fancyhdr} %for page style 
+\usepackage{titlesec}
+
+
+% Define the title and author
+\title{Air Quality Analysis in the Lombardia region for the year 2023}
+\author{Andrea Ongarini}
+
+% Adjust Table of Contents formatting
+\renewcommand{\cftdotsep}{0.8} % Set the space between dots in TOC
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize, % Set font size
+  linewidth=\textwidth, % Set line width to text width
+  breaklines=true, % Allow line breaks
+  frame=single, % Add a frame around the code
+}
+
+
+
+% Define header and footer
+\pagestyle{fancy}
+\fancyhf{} % Clear header and footer
+\renewcommand{\headrulewidth}{1pt} % Header line width
+\renewcommand{\footrulewidth}{1pt} % Footer line width
+\fancyhead[L]{\rightmark} % Section name in the header
+\fancyfoot[C]{\thepage} % Page number at the center
+
+% Redefine section format to include section name in the header
+\titleformat{\section}[hang]{\Large\bfseries}{\thesection}{1em}{}
+
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\newpage
+\input{Capitoli/Introduzione}  % Include your existing LaTeX file for the introduction
+
+\newpage
+\input{Capitoli/Preprocessing}  % Include your existing LaTeX file for the introduction
+
+\newpage
+\input{Capitoli/AnalisiDatiSostanze}  % Include your existing LaTeX file for the introduction
+
+\newpage
+\input{Capitoli/AnalisiDatiZone}  % Include your existing LaTeX file for the introduction
+
+\newpage
+\input{Capitoli/AQI}  % Include your existing LaTeX file for the introduction
+
+\newpage
+\input{Capitoli/Conclusioni}  % Include your existing LaTeX file for the introduction
+
+\newpage
+\input{Capitoli/Bibliografia}
+
+\end{document}
