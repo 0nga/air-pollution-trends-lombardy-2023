@@ -111,13 +111,6 @@ The project workflow consists of:
 
 ---
 
-## Repository Structure
-
-air-pollution-lombardy-2023/
-
-
----
-
 ## Tools & Libraries
 
 The project was developed in **R** using:
@@ -133,36 +126,6 @@ Data manipulation, geospatial analysis, and visualization were performed entirel
 
 ---
 
-## Reproducibility
-
-To reproduce the analysis:
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/air-pollution-lombardy-2023.git
-   ```
-   
-2. Download the original 2023 datasets from ARPA Lombardia (links available in the report).
-
-3. Place raw files inside:
-   ```bash
-   data/raw/
-   ```
-   
-4. Run the scripts in numerical order:
-
-   ```bash
-  01_data_import_clean.R
-  02_analysis_pollutants.R
-  03_analysis_provinces.R
-  04_aqi_calculation.R
-  05_correlation_analysis.R
-  06_mapping.R
-   '''
-
-All plots and tables will be saved automatically in the outputs/ folder.
-
-
 ## Limitations
 
 - **Temporal scope**: The analysis is restricted to data from the year 2023. Therefore, results do not capture long-term trends or interannual variability in pollutant concentrations.
@@ -172,7 +135,6 @@ All plots and tables will be saved automatically in the outputs/ folder.
 - **AQI aggregation level**: The Air Quality Index (AQI) was computed using monthly average concentrations. This approach smooths short-term peaks and may underestimate acute exposure risks related to daily exceedances.
 
 - **Exclusion of meteorological variables**: Meteorological factors (e.g., temperature, wind speed, humidity, atmospheric pressure) were not included in the analysis. As a result, the study does not explicitly model pollutant dispersion dynamics or seasonal meteorological influences.
-
 
 ## Future Improvements
 - Multi-year comparison (time-series analysis)
