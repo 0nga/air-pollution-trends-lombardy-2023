@@ -1,0 +1,967 @@
+---
+title: "Data Preprocessing and cleaning"
+output: html_notebook
+---
+
+LIBRERIE 
+```{r}
+library(dplyr)
+library(sf)
+library(osmdata)
+library(ggplot2)
+library(ggmap)
+library(tidyr)
+
+```
+
+DATA IMPORT
+```{r}
+rm(list=ls()) # remove all variables
+
+# dati del 2023
+dati2023 <- read.csv("dati/Dati_sensori_aria_2023.csv")
+dati2018 <- read.csv("dati/Dati_sensori_aria_dal_2018.csv")
+
+# import station dataset
+stationData1 <- read.csv("dati/Stazioni_qualit__dell_aria_2024.csv")
+stationData2 <- read.csv("dati/Stazioni_qualit__dell_aria_NRT_2024.csv")
+```
+
+Concatenazione dei dataset delle rilevazioni
+```{r}
+# I due dataset han formati diversi per la data !!!!!!!!
+
+# convert time in a 24h format
+dati2018$Data  <- strptime(dati2018$Data, format = "%m/%d/%Y %I:%M:%S %p")
+
+# convert time in a 24h format
+dati2023$Data  <- strptime(dati2023$Data, format = "%d/%m/%Y %I:%M:%S %p")
+
+#tengo solo i dati del 2023
+dati23 <- subset(dati2018, format(Data, "%Y") == "2023")
+dati2023 <- subset(dati2023, format(Data, "%Y") == "2023")
+
+# concateno i due dataset
+airData <- rbind(dati2023, dati23)
+# check on the year
+unique(format(airData$Data, "%Y")) 
+```
+
+Concatenazione dei dataset delle stazioni
+```{r}
+stationData2$Quota <- as.character(stationData2$Quota)
+stationData <- bind_rows(stationData1, stationData2)
+
+rm(list=c("stationData1", "stationData2","dati2018", "dati23","dati2023"))
+```
+
+NULL INSTANCES
+```{r}
+# count null instances 
+nrow(airData[airData$Valore == -9999.0,])
+
+# save the instance with errors to study them
+#errorSensor <- airData[airData$Valore == -9999.0,]
+
+# remove null instances
+airData <- airData[airData$Valore != -9999.0,]
+
+airData <- subset(airData, !is.na(Data))
+```
+
+DUPLICATE INSTANCES
+```{r}
+# check for duplicate instances
+nrow(distinct(airData)) == nrow(airData)
+length(unique(stationData$IdSensore)) == nrow((stationData))
+
+# rimuove misurazioni doppie
+airData <- airData %>% distinct()
+
+# rimuovi duplicati sensori
+stationData <- stationData %>% distinct(IdSensore, .keep_all = TRUE)
+```
+
+OPEN ATTRIBUTE
+```{r}
+# create new attribute for the station
+stationData$Open <- ifelse((stationData$DataStop == "" | is.na(stationData$DataStop)), "YES", "NO")
+```
+
+LOMBARDIA MAP
+```{r}
+# download Lombardia map
+lombardiaMap <- get_stadiamap((getbb("Lombardia")), maptype = "alidade_smooth" )
+```
+
+PLOT DETECTION STATION
+```{r}
+# plot the detection station
+plot <- ggmap(lombardiaMap) + geom_point(data = stationData,
+                     aes(x = lng, y = lat, color = Open), size = 2, alpha = 0.15) + 
+                     ggtitle("Detection Station") +
+                     labs(x = "Longitude", y = "Latitude") +
+                     theme(plot.title = element_text(hjust = 0.5))
+plot
+```
+
+PLOT DETECTION STATION
+```{r}
+# Read the GeoJSON Shapefile
+lombardia_provinces <- st_read("dati/lombardy_.geojson")
+
+plot <- ggplot() +
+  geom_sf(data = lombardia_provinces, fill = "lightblue", color = "black") +
+  # Add points from stationData
+  geom_point(data = stationData, aes(x = lng, y = lat), color = "red", size = 2) +
+  labs(x = "Longitude", y = "Latitude") +
+  theme_minimal()
+ggsave(plot, file="detectionStation.pdf", width = 11, height = 8.5)
+
+```
+
+DATASET MERGE
+```{r}
+fullData <- merge(airData, stationData, by = "IdSensore")
+
+# save the lost instances
+# lostInstances <- anti_join(airData, fullData, by = "IdSensore")
+
+rm(airData)
+```
+
+PLOT MEASURED SUBSTANCE BY PROVINCE
+```{r}
+# generate a scatterplot showing which types of substances are measured in which
+plot <- ggplot(fullData, aes(x = Provincia, y = NomeTipoSensore)) + 
+                      geom_point() + 
+                      labs(x = "Zone", y ="Measured Substance",
+                      title = "Measured Substance in different zones")
+ggsave(plot, file="sostanzeProvince.pdf", width = 11, height = 8.5)
+
+```
+
+PLOT INSTANCES NUMBER
+```{r}
+# find number of instances for each substance
+instanceNumber <- as.data.frame(table(fullData$NomeTipoSensore))
+
+par(mar = c(5, 8, 2, 2))  # Adjust the margins (bottom, left, top, right)
+
+custom_values <- instanceNumber$Freq
+custom_labels <- instanceNumber$Var1[which(instanceNumber$Freq %in% custom_values)]
+
+barplot(instanceNumber$Freq, names.arg = custom_labels, horiz = TRUE, las = 1, col = "transparent", main = "Number of instances for each substance", cex.names = 0.7)
+
+rm(instanceNumber)
+```
+
+PROVINCE COORDINATES
+```{r}
+# Create a data frame with province, latitude, and longitude
+province <- data.frame(
+  Provincia = c("BS", "BG", "CO", "CR", "LC", "LO", "MN", "MI", "MB", "PV", "SO", "VA"),
+  lat = c(45.5397733, 45.6947359, 45.8119642, 45.1334974, 45.8529825, 45.3128778, 45.1603653, 45.4636707, 45.5840057, 45.1858767, 46.1712597, 45.8176046),
+  lng = c(10.2229390, 9.6687071, 9.0854556, 10.0261350, 9.3900705, 9.4978501, 10.7976976, 9.1881263, 9.2730143, 9.1566316, 9.8693336, 8.8263844)
+)
+
+
+#https://www.dossier.net/utilities/coordinate-geografiche/provincia-monza-brianza.htm
+```
+
+BRESCIA
+```{r}
+BS <- fullData[fullData$Provincia == "BS", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+BS <- BS %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+BS_average_by_month <- BS %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+BS_average_by_month$Month <- as.Date(paste(BS_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+BS_average_by_month$Month <- as.Date(BS_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- BS_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(BS_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal() + coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="BSTrend.pdf", width = 8, height = 5)
+```
+
+BERGAMO
+```{r}
+BG <- fullData[fullData$Provincia == "BG", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+BG <- BG %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+BG_average_by_month <- BG %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+BG_average_by_month$Month <- as.Date(paste(BG_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+BG_average_by_month$Month <- as.Date(BG_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- BG_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(BG_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal()+ coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="BGTrend.pdf",, width = 8, height = 5)
+```
+
+COMO
+```{r}
+CO <- fullData[fullData$Provincia == "CO", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+CO <- CO %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+CO_average_by_month <- CO %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+CO_average_by_month$Month <- as.Date(paste(CO_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+CO_average_by_month$Month <- as.Date(CO_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- CO_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(CO_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal() + coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="COTrend.pdf",, width = 8, height = 5)
+
+```
+
+CREMONA
+```{r}
+CR <- fullData[fullData$Provincia == "CR", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+CR <- CR %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+CR_average_by_month <- CR %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+CR_average_by_month$Month <- as.Date(paste(CR_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+CR_average_by_month$Month <- as.Date(CR_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- CR_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(CR_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal() + coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="CRTrend.pdf", , width = 8, height = 5)
+
+```
+
+LECCO
+```{r}
+LC <- fullData[fullData$Provincia == "LC", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+LC <- LC %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+LC_average_by_month <- LC %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+LC_average_by_month$Month <- as.Date(paste(LC_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+LC_average_by_month$Month <- as.Date(LC_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- LC_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(LC_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal()+ coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="LCTrend.pdf",, width = 8, height = 5)
+```
+
+LODI
+```{r}
+LO <- fullData[fullData$Provincia == "LO", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+LO <- LO %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+LO_average_by_month <- LO %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+LO_average_by_month$Month <- as.Date(paste(LO_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+LO_average_by_month$Month <- as.Date(LO_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- LO_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+
+```{r}
+# Plot the data
+plot <- ggplot(LO_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal()+ coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="LOTrend.pdf",, width = 8, height = 5)
+
+```
+
+MANTOVA
+```{r}
+MN <- fullData[fullData$Provincia == "MN", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+MN <- MN %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+MN_average_by_month <- MN %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+MN_average_by_month$Month <- as.Date(paste(MN_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+MN_average_by_month$Month <- as.Date(MN_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- MN_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(MN_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal() + coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="MNTrend.pdf",, width = 8, height = 5)
+```
+
+MILANO
+```{r}
+MI <- fullData[fullData$Provincia == "MI", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+MI <- MI %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+MI_average_by_month <- MI %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+MI_average_by_month$Month <- as.Date(paste(MI_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+MI_average_by_month$Month <- as.Date(MI_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- MI_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(MI_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal() + coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="MITrend.pdf", width = 8, height = 5)
+```
+
+MONZA-BRIANZA
+```{r}
+MB <- fullData[fullData$Provincia == "MB", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+MB <- MB %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+MB_average_by_month <- MB %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+MB_average_by_month$Month <- as.Date(paste(MB_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+MB_average_by_month$Month <- as.Date(MB_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- MB_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(MB_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal() + coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="MBTrend.pdf", width = 8, height = 5)
+
+```
+
+PAVIA
+```{r}
+PV <- fullData[fullData$Provincia == "PV", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+PV <- PV %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+PV_average_by_month <- PV %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+PV_average_by_month$Month <- as.Date(paste(PV_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+PV_average_by_month$Month <- as.Date(PV_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- PV_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(PV_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal() + coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="PVTrend.pdf", width = 8, height = 5)
+
+```
+
+SONDRIO
+```{r}
+SO <- fullData[fullData$Provincia == "SO", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+SO <- SO %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+SO_average_by_month <- SO %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+SO_average_by_month$Month <- as.Date(paste(SO_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+SO_average_by_month$Month <- as.Date(SO_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- SO_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(SO_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal() + coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="SOTrend.pdf", width = 8, height = 5)
+```
+
+VARESE
+```{r}
+VA <- fullData[fullData$Provincia == "VA", ] 
+```
+
+```{r}
+# Extract the month from the 'Data' column
+VA <- VA %>%
+  mutate(Month = format(Data, "%Y-%m"))
+
+# Group by 'NomeTipoSensore' and 'Month', then calculate the average
+VA_average_by_month <- VA %>%
+  group_by(NomeTipoSensore, Month) %>%
+  summarise(Average_Value = mean(Valore))
+```
+
+CORRELATION MATRIX
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+VA_average_by_month$Month <- as.Date(paste(VA_average_by_month$Month, "-01", sep=""), format="%Y-%m-%d")
+
+# Assuming your data is in a data frame named BS_average_by_month
+# Convert Month to Date type
+VA_average_by_month$Month <- as.Date(VA_average_by_month$Month)
+
+# Reshape the data into a wide format
+wide_data <- VA_average_by_month %>%
+  pivot_wider(names_from = NomeTipoSensore, values_from = Average_Value)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(wide_data[, -1])  # Exclude the Month column for correlation calculation
+
+correlation_matrix_truncated <- round(correlation_matrix, 2)
+
+# Save correlation matrix to a text file
+write.table(correlation_matrix_truncated, "correlation_matrix.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+
+```
+
+```{r}
+# Plot the data
+plot <- ggplot(VA_average_by_month, aes(x = as.numeric(substring(Month, 6, 7)), y = Average_Value, color = NomeTipoSensore)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(#title = "Average Values by Month",
+       x = "Month",
+       y = "Average Value") +
+  theme_minimal() + coord_cartesian(ylim = c(0,110))
+
+ggsave(plot, file="VATrend.pdf", width = 8, height = 5)
+
+```
+
+
+CALCOLO AQI PER OGNI PROVINCIA E PER OGNI MESE
+
+      Very good  Good   Acceptable  Poor      Very poor
+PM2.5   0-10    10-20     20-25     25-50       50-800
+PM10    0-20    20-35     35-50     50-100      100-1200
+NO2     0-40    40-100    100-200   200-400     400-1000
+O2      0-80    80-120    120-180   180-240     240-600 
+SO2     0-100   100-200   200-350   350-500     500-1250
+
+```{r}
+# Extract month from 'Data'
+fullData$Month <- format(fullData$Data, "%m")
+
+# Group by month, province, and substance, then calculate the average
+avg_values <- fullData %>%
+  group_by(Month, Provincia, NomeTipoSensore) %>%
+  summarize(Avg_Valore = mean(Valore))
+
+# Filter avg_values to keep only rows with "Ozono" or "Biossido di Azoto"
+filtered_avg_values <- avg_values %>%
+  filter(NomeTipoSensore %in% c("Ozono", "Biossido di Azoto", "	PM10 (SM2005)", "Particelle sospese PM2.5", "Biossido di Zolfo"))
+
+print(filtered_avg_values)
+
+```
+
+
+Creo gli indici
+      Very good  Good   Acceptable  Poor      Very poor
+PM10    0-20    20-35     35-50     50-100      100-1200
+PM2.5   0-10    10-20     20-25     25-50       50-800
+NO2     0-40    40-100    100-200   200-400     400-1000
+O3      0-80    80-120    120-180   180-240     240-600 
+SO2     0-100   100-200   200-350   350-500     500-1250
+
+```{r}
+# Create PM10index column based on specified value ranges
+filtered_avg_values <- filtered_avg_values[] %>%
+  mutate(PM10index = case_when(
+    NomeTipoSensore == "PM10 (SM2005)" & Avg_Valore >= 0 & Avg_Valore <= 20 ~ 1,
+    NomeTipoSensore == "PM10 (SM2005)" & Avg_Valore > 20 & Avg_Valore <= 35 ~ 2,
+    NomeTipoSensore == "PM10 (SM2005)" & Avg_Valore > 35 & Avg_Valore <= 50 ~ 3,
+    NomeTipoSensore == "PM10 (SM2005)" & Avg_Valore > 50 & Avg_Valore <= 100 ~ 4,
+    NomeTipoSensore == "PM10 (SM2005)" & Avg_Valore > 100 & Avg_Valore <= 1200 ~ 5,
+    TRUE ~ NA_integer_
+  ))
+
+# Create PM2.5index column based on specified value ranges
+filtered_avg_values <- filtered_avg_values[] %>%
+  mutate(PM2.5index = case_when(
+    NomeTipoSensore == "Particelle sospese PM2.5" & Avg_Valore >= 0 & Avg_Valore <= 10 ~ 1,
+    NomeTipoSensore == "Particelle sospese PM2.5" & Avg_Valore > 10 & Avg_Valore <= 20 ~ 2,
+    NomeTipoSensore == "Particelle sospese PM2.5" & Avg_Valore > 20 & Avg_Valore <= 25 ~ 3,
+    NomeTipoSensore == "Particelle sospese PM2.5" & Avg_Valore > 25 & Avg_Valore <= 50 ~ 4,
+    NomeTipoSensore == "Particelle sospese PM2.5" & Avg_Valore > 50 & Avg_Valore <= 800 ~ 5,
+    TRUE ~ NA_integer_
+  ))
+
+# Create NO2index column based on specified value ranges
+filtered_avg_values <- filtered_avg_values[] %>%
+  mutate(NO2index = case_when(
+    NomeTipoSensore == "Biossido di Azoto" & Avg_Valore >= 0 & Avg_Valore <= 40 ~ 1,
+    NomeTipoSensore == "Biossido di Azoto" & Avg_Valore > 40 & Avg_Valore <= 100 ~ 2,
+    NomeTipoSensore == "Biossido di Azoto" & Avg_Valore > 100 & Avg_Valore <= 200 ~ 3,
+    NomeTipoSensore == "Biossido di Azoto" & Avg_Valore > 200 & Avg_Valore <= 400 ~ 4,
+    NomeTipoSensore == "Biossido di Azoto" & Avg_Valore > 400 & Avg_Valore <= 1000 ~ 5,
+    TRUE ~ NA_integer_
+  ))
+
+# Create O3index column based on specified value ranges
+filtered_avg_values <- filtered_avg_values[] %>%
+  mutate(O3index = case_when(
+    NomeTipoSensore == "Ozono" & Avg_Valore >= 0 & Avg_Valore <= 80 ~ 1,
+    NomeTipoSensore == "Ozono" & Avg_Valore > 80 & Avg_Valore <= 120 ~ 2,
+    NomeTipoSensore == "Ozono" & Avg_Valore > 120 & Avg_Valore <= 180 ~ 3,
+    NomeTipoSensore == "Ozono" & Avg_Valore > 180 & Avg_Valore <= 240 ~ 4,
+    NomeTipoSensore == "Ozono" & Avg_Valore > 240 & Avg_Valore <= 600 ~ 5,
+    TRUE ~ NA_integer_
+  ))
+
+# Create SO2index column based on specified value ranges
+filtered_avg_values <- filtered_avg_values[] %>%
+  mutate(SO2index = case_when(
+    NomeTipoSensore == "Biossido di Zolfo" & Avg_Valore >= 0 & Avg_Valore <= 100 ~ 1,
+    NomeTipoSensore == "Biossido di Zolfo" & Avg_Valore > 100 & Avg_Valore <= 200 ~ 2,
+    NomeTipoSensore == "Biossido di Zolfo" & Avg_Valore > 200 & Avg_Valore <= 350 ~ 3,
+    NomeTipoSensore == "Biossido di Zolfo" & Avg_Valore > 350 & Avg_Valore <= 500 ~ 4,
+    NomeTipoSensore == "Biossido di Zolfo" & Avg_Valore > 500 & Avg_Valore <= 1250 ~ 5,
+    TRUE ~ NA_integer_
+  ))
+print(filtered_avg_values)
+```
+
+Raggruppo i dati per provincia e mese
+
+```{r}
+# Group by Month and Provincia, summarizing by maximum AQI
+grouped_data <- filtered_avg_values %>%
+  group_by(Month, Provincia) %>%
+  summarize(AQI = max(PM10index, PM2.5index, NO2index, O3index, SO2index, na.rm = TRUE))
+
+# Pivot the data
+pivot_data <- pivot_wider(grouped_data, names_from = Month, values_from = AQI)
+
+# Print the pivoted data
+print(pivot_data)
+
+write.table(pivot_data, "AQI.txt", sep="\t", row.names=TRUE, col.names=TRUE)
+```
+Grafico i risultati
+
+```{r}
+data_long <- gather(pivot_data, key = "Month", value = "Value", -Provincia)
+
+# Plot
+ggplot(data_long, aes(x = Month, y = Value, group = Provincia, color = Provincia)) +
+  #geom_line() +
+  geom_point() +
+  labs(title = "Values by Month and Provincia",
+       x = "Month",
+       y = "Value",
+       color = "Provincia") +
+  theme_minimal()
+
+```
+
+
+

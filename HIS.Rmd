@@ -1,0 +1,1179 @@
+---
+title: "Data Preprocessing and cleaning"
+output: html_notebook
+---
+
+LIBRERIE 
+```{r}
+library(dplyr)
+library(sf)
+library(osmdata)
+library(ggplot2)
+library(ggmap)
+```
+
+DATA IMPORT
+```{r}
+rm(list=ls()) # remove all variables
+
+# 2023 data
+dati2023 <- read.csv("dati/Dati_sensori_aria_2023.csv")
+dati2018 <- read.csv("dati/Dati_sensori_aria_dal_2018.csv")
+
+# import station dataset
+stationData1 <- read.csv("dati/Stazioni_qualit__dell_aria_2024.csv")
+stationData2 <- read.csv("dati/Stazioni_qualit__dell_aria_NRT_2024.csv")
+```
+
+Measurements datasets' concatenation
+```{r}
+# Different data format for the two datasets!
+
+# convert time in a 24h format
+dati2018$Data  <- strptime(dati2018$Data, format = "%m/%d/%Y %I:%M:%S %p")
+
+# convert time in a 24h format
+dati2023$Data  <- strptime(dati2023$Data, format = "%d/%m/%Y %I:%M:%S %p")
+
+# keep only 2023 datas
+dati23 <- subset(dati2018, format(Data, "%Y") == "2023")
+dati2023 <- subset(dati2023, format(Data, "%Y") == "2023")
+
+# datasets' concatenation
+airData <- rbind(dati2023, dati23)
+# check on the year
+unique(format(airData$Data, "%Y")) 
+```
+
+Station datasets' concatenation
+```{r}
+stationData2$Quota <- as.character(stationData2$Quota)
+stationData <- bind_rows(stationData1, stationData2)
+
+rm(list=c("stationData1", "stationData2","dati2018", "dati23","dati2023"))
+```
+
+NULL INSTANCES
+```{r}
+# count null instances 
+nrow(airData[airData$Valore == -9999.0,])
+
+# save the instance with errors to study them
+#errorSensor <- airData[airData$Valore == -9999.0,]
+
+# remove null instances
+airData <- airData[airData$Valore != -9999.0,]
+
+airData <- subset(airData, !is.na(Data))
+```
+
+DUPLICATE INSTANCES
+```{r}
+# check for duplicate instances
+nrow(distinct(airData)) == nrow(airData)
+length(unique(stationData$IdSensore)) == nrow((stationData))
+
+# remove duplicate measurements
+airData <- airData %>% distinct()
+
+# remove duplicate sensors
+stationData <- stationData %>% distinct(IdSensore, .keep_all = TRUE)
+```
+
+OPEN ATTRIBUTE
+```{r}
+# create new attribute for the station
+stationData$Open <- ifelse((stationData$DataStop == "" | is.na(stationData$DataStop)), "YES", "NO")
+```
+
+LOMBARDIA MAP
+```{r}
+# download Lombardia map
+lombardiaMap <- get_stadiamap((getbb("Lombardia")), maptype = "alidade_smooth" )
+```
+
+PLOT DETECTION STATION
+```{r}
+# plot the detection station
+plot <- ggmap(lombardiaMap) + geom_point(data = stationData,
+                     aes(x = lng, y = lat, color = Open), size = 2, alpha = 0.15) + 
+                     ggtitle("Detection Station") +
+                     labs(x = "Longitude", y = "Latitude") +
+                     theme(plot.title = element_text(hjust = 0.5))
+plot
+```
+
+PLOT DETECTION STATION
+```{r}
+# Read the GeoJSON Shapefile
+lombardia_provinces <- st_read("dati/lombardy_.geojson")
+
+plot <- ggplot() +
+  geom_sf(data = lombardia_provinces, fill = "lightblue", color = "black") +
+  # Add points from stationData
+  geom_point(data = stationData, aes(x = lng, y = lat), color = "red", size = 2) +
+  labs(x = "Longitude", y = "Latitude") +
+  theme_minimal()
+ggsave(plot, file="detectionStation.pdf", width = 11, height = 8.5)
+
+```
+
+DATASET MERGE
+```{r}
+fullData <- merge(airData, stationData, by = "IdSensore")
+
+# save the lost instances
+# lostInstances <- anti_join(airData, fullData, by = "IdSensore")
+
+rm(airData)
+```
+
+PLOT MEASURED SUBSTANCE BY PROVINCE
+```{r}
+# generate a scatterplot showing which types of substances are measured in which
+plot <- ggplot(fullData, aes(x = Provincia, y = NomeTipoSensore)) + 
+                      geom_point() + 
+                      labs(x = "Zone", y ="Measured Substance",
+                      title = "Measured Substance in different zones")
+ggsave(plot, file="sostanzeProvince.pdf", width = 11, height = 8.5)
+
+```
+
+PLOT INSTANCES NUMBER
+```{r}
+# find number of instances for each substance
+instanceNumber <- as.data.frame(table(fullData$NomeTipoSensore))
+
+par(mar = c(5, 8, 2, 2))  # Adjust the margins (bottom, left, top, right)
+
+custom_values <- instanceNumber$Freq
+custom_labels <- instanceNumber$Var1[which(instanceNumber$Freq %in% custom_values)]
+
+barplot(instanceNumber$Freq, names.arg = custom_labels, horiz = TRUE, las = 1, col = "transparent", main = "Number of instances for each substance", cex.names = 0.7)
+
+rm(instanceNumber)
+```
+
+PROVINCE COORDINATES
+```{r}
+# Create a data frame with province, latitude, and longitude
+province <- data.frame(
+  Provincia = c("BS", "BG", "CO", "CR", "LC", "LO", "MN", "MI", "MB", "PV", "SO", "VA"),
+  lat = c(45.5397733, 45.6947359, 45.8119642, 45.1334974, 45.8529825, 45.3128778, 45.1603653, 45.4636707, 45.5840057, 45.1858767, 46.1712597, 45.8176046),
+  lng = c(10.2229390, 9.6687071, 9.0854556, 10.0261350, 9.3900705, 9.4978501, 10.7976976, 9.1881263, 9.2730143, 9.1566316, 9.8693336, 8.8263844)
+)
+
+
+#https://www.dossier.net/utilities/coordinate-geografiche/provincia-monza-brianza.htm
+```
+
+CADMIO - PIOMBO - ARSENICO - NICHEL
+```{r}
+arsenico <- fullData [fullData$NomeTipoSensore == "Arsenico",]
+piombo <- fullData [fullData$NomeTipoSensore == "Piombo",]
+cadmio <- fullData [fullData$NomeTipoSensore == "Cadmio",]
+nikel<- fullData [fullData$NomeTipoSensore == "Nikel",]
+
+# Sample data for 4 instances
+measurements <- c(piombo$Valore, arsenico$Valore, cadmio$Valore, nikel$Valore)
+
+# Limit value
+limit_values <- c(0.5, 6, 5, 20)
+names <- c("Pb", "As", "Cd", "Ni")
+colors <- c("red", "lightblue", "green","blue")
+
+# Create a bar plot
+barplot(measurements, names.arg = names, col = colors[2], main = "Measurement for 4 Instances", ylab = "Measurement Value", ylim=c(0, 22))
+
+for (i in seq_along(limit_values)) {
+  abline(h = limit_values[i], col = colors[i], lty = 2)
+}
+
+# Print messages indicating the limit values
+for (i in seq_along(limit_values)) {
+  text(i, limit_values[i], paste("Limit", names[i]), col = colors[i], pos = 3)
+}
+
+rm(list = c("custom_labels", "custom_values", "cadmio", "piombo", "nikel", "arsenico", "colors", "i", "limit_values", "measurements", "names"))
+```
+
+BLACK CARBON
+Calcolo le medie mensili delle misurazioni di Black Carbon per stazione
+```{r}
+blackCarbon <- fullData [fullData$NomeTipoSensore == "BlackCarbon",]
+
+# Extract Year and Month from the 'Data' column
+BC <- blackCarbon %>%
+  mutate(Year = lubridate::year(Data),
+         Month = lubridate::month(Data))
+
+# Group by 'IdStazione', 'Year', and 'Month', and calculate the mean of 'Valore'
+monthlyMeanBc <- BC %>%
+  group_by(IdStazione, Year, Month) %>%
+  summarise(Mean_Value = mean(Valore, na.rm = TRUE))
+
+monthlyMeanBc <- merge(monthlyMeanBc,stationData[stationData$NomeTipoSensore == "BlackCarbon",], by="IdStazione")
+
+# Use distinct to remove duplicates based on 'IdStazione', 'Year', and 'Month'
+monthlyMeanBc <- monthlyMeanBc %>% distinct(IdStazione, Year, Month, .keep_all = TRUE)
+head(monthlyMeanBc)
+```
+
+Calcolo le medie annuali per stazione
+```{r}
+# Group by 'IdStazione' and 'Year', and calculate the mean of 'Mean_Value'
+yearlyMeanBc <- monthlyMeanBc %>%
+  group_by(IdStazione, Year) %>%
+  summarise(YearlyMeanValue = mean(Mean_Value, na.rm = TRUE))
+
+yearlyMeanBc <- merge(yearlyMeanBc, stationData[stationData$NomeTipoSensore == "BlackCarbon",], by="IdStazione")
+
+# Use distinct to remove duplicates based on 'IdStazione', 'Year', and 'Month'
+yearlyMeanBc <- yearlyMeanBc %>% distinct(IdStazione, Year, .keep_all = TRUE)
+
+# Display the resulting dataset
+head(yearlyMeanBc)
+```
+
+Plot the monthly trend
+```{r}
+# Convert 'Month' to a factor with correct levels
+monthlyMeanBc$Month <- factor(monthlyMeanBc$Month, levels = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"))
+
+# Create a ggplot object
+plot <- ggplot(monthlyMeanBc, aes(x = Month, y = Mean_Value, group = interaction(IdStazione, Year), color = as.factor(IdStazione), linetype = factor(IdStazione))) +
+  geom_line() +
+  geom_point() +
+  labs(#title = "Trend of Mean Value Over Months",
+       x = "Month",
+       y = "Average Value",
+       color = "IdStazione",
+       linetype = "IdStazione") +
+  scale_linetype_discrete(name = "IdStazione") +
+  theme_minimal() + theme(plot.title = element_text(hjust = 0.5)) + # Center the title
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+ggsave(plot, file="trendBC.pdf", width = 11, height = 8.5)
+
+rm(list = c("BC", "monthlyMeanBc", "blackCarbon", "yearlyMeanBc"))
+```
+
+PM10 
+Creo il dataset + plot delle stazioni
+```{r}
+PM10 <- fullData [fullData$NomeTipoSensore == "PM10 (SM2005)",]
+# daily limit is 50 μg/m3 hourly average, and must not to be exceeded more than 35 days/year.
+# Annual limit is less than 40 μg/m3 on an yearly average.
+
+# plot the detection station
+plot <- ggmap(lombardiaMap) + geom_point(data = PM10,
+                     aes(x = lng, y = lat), size = 2, alpha = 0.15) + 
+                     ggtitle("PM10 Detection Station") +
+                     labs(x = "Longitude", y = "Latitude") +
+                     theme(plot.title = element_text(hjust = 0.5))
+```
+
+Calcolo:
+- il numero di giorni in cui viene superato il limite (per provincia)
+- la media annua per stazione
+- la media annua per provincia
+```{r}
+# NUMBER OF DAYS OVER LIMIT
+
+# Filter rows where Valore is greater than 50, count distinct days where Valore is greater than 50 for each province
+PM10OverLimit <- PM10 %>% 
+  filter(Valore > 50)%>%
+  group_by(Provincia, Data) %>%
+  group_by(Provincia) %>%
+  summarize(DaysAbove50 = sum(n_distinct(Data)))
+
+# ANNUAL AVG BY STATION AND BY PROVINCE
+# Convert 'Data' column to Date type
+PM10$Data <- as.Date(PM10$Data)
+
+# Calculate the annual average grouped by IdStazione for the year 2023
+PM10_annual_avg_by_station <- PM10 %>%
+  filter(lubridate::year(Data) == 2023) %>%
+  group_by(IdStazione) %>%
+  summarise(Avg_Valore_Station = mean(Valore, na.rm = TRUE))
+
+# Calculate the annual average grouped by Provincia
+PM10_annual_avg_by_province <- PM10_annual_avg_by_station %>%
+  left_join(PM10 %>% select(IdStazione, Provincia) %>% distinct(), by = "IdStazione") %>%
+  group_by(Provincia) %>%
+  summarise(Avg_Valore_Province = mean(Avg_Valore_Station, na.rm = TRUE))
+
+# Adding lat and lng for station
+PM10_annual_avg_by_station <- merge(PM10_annual_avg_by_station, stationData[stationData$NomeTipoSensore == "PM10 (SM2005)",])
+
+# Adding lat and lng for provinces
+PM10_annual_avg_by_province <- merge(PM10_annual_avg_by_province, province, by="Provincia")
+```
+
+Plot: rispetto limiti giornaliero + rispetto limiti annuo
+```{r}
+# Create a new variable for color based on the condition
+PM10OverLimit$color <- ifelse(PM10OverLimit$DaysAbove50 < 35, "lightgreen", "red")
+
+# Create a bar plot
+plot <- ggplot(PM10OverLimit, aes(x = Provincia, y = DaysAbove50, fill = color)) +
+  geom_bar(stat = "identity") +
+  geom_hline(yintercept = 35, linetype = "dashed", color = "black") + 
+  geom_text(aes(x = 10.5, y = 35, label = "Limit: 35"), hjust = -0.1, vjust = -0.5, color = "black", size = 4) +
+  labs(#title = "Respect of the Daily PM10 limit by Province in 2023",
+       x = "Province", y = "Number of days with PM10 > 50") +
+  scale_fill_manual(values = c("green", "red"), name = "Legend", labels = c("< 35 Days", ">=35 Days")) +
+  theme_minimal() + coord_cartesian(ylim = c(0,80)) + theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+
+ggsave(plot, file="PM10DailyLimit.pdf", width = 11, height = 8.5)
+
+# Create a new variable for color based on the condition
+PM10_annual_avg_by_province$color <- ifelse(PM10_annual_avg_by_province$Avg_Valore_Province < 40, "green", "red")
+
+# Create a bar plot
+plot <- ggplot(PM10_annual_avg_by_province, aes(x = Provincia, y = Avg_Valore_Province, fill = color)) +
+  geom_bar(stat = "identity") +
+  geom_hline(yintercept = 40, linetype = "dashed", color = "black") + 
+  geom_text(aes(x = 10.5, y = 40, label = "Limit: 40"), hjust = -0.1, vjust = -0.5, color = "black", size = 4) +
+  labs(#title = "Respect of the Annual PM10 limit by Province in 2023",
+       x = "Province",
+       y = "Annual average level of PM10") +
+  scale_fill_manual(values = c("green", "red"), name = "Legend", labels = c("Under 40", "Over 40")) +  # Manually set fill colors
+  theme_minimal() + coord_cartesian(ylim = c(0,80))  + theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+ggsave(plot, file="AnnualPM10.pdf", width = 11, height = 8.5) 
+```
+
+Plot:densità annua per stazione + densità annua per provincia
+```{r}
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = PM10_annual_avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore_Station), 
+                 geom = "polygon", alpha = 0.1) +  # Add density map
+  geom_point(data = PM10_annual_avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore_Station),
+             size = 3, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("PM10 Annual Average Value by station") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale + 
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file="annualDensityPM10Station.pdf", width = 11, height = 8.5)
+
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot1 <- ggmap(lombardiaMap) +
+  stat_density_2d(data = PM10_annual_avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore_Province), 
+                 geom = "polygon", alpha = 0.25) +  # Add density map
+  geom_point(data = PM10_annual_avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore_Province),
+             size = 5, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("PM10 Annual Average Value by zone") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+ggsave(plot, file="annualDensityPM10Zone.pdf", width = 11, height = 8.5)
+```
+
+```{r}
+rm(list = c("PM10","PM10OverLimit", "PM10_annual_avg_by_station", "PM10_annual_avg_by_province", "PM10", "plot"))
+```
+
+PM2.5
+Creo il dataset + plot delle stazioni
+Calcolo: media annua per stazione + media annua per provincia
+```{r}
+PM2.5 <- fullData [fullData$NomeTipoSensore == "Particelle sospese PM2.5",]
+# The annual limit is 25 μg/m3 as annual average
+
+# plot the detection station
+plot <- ggmap(lombardiaMap) + geom_point(data = PM2.5,
+                     aes(x = lng, y = lat), size = 2, alpha = 0.15) + 
+                     ggtitle("PM10 Detection Station") +
+                     labs(x = "Longitude", y = "Latitude") +
+                     theme(plot.title = element_text(hjust = 0.5))
+
+# ANNUAL AVG BY PROVINCE AND BY STATION
+# Convert 'Data' column to Date type
+PM2.5$Data <- as.Date(PM2.5$Data)
+
+# Create a new dataset with annual average values for the year 2023
+PM2.5_Annual_Avg_by_station <- PM2.5 %>%
+  filter(lubridate::year(Data) == 2023) %>%
+  group_by(IdStazione) %>%
+  summarise(Avg_Valore = mean(Valore, na.rm = TRUE))
+
+PM2.5_Annual_Avg_by_station <- merge(PM2.5_Annual_Avg_by_station, PM2.5, by="IdStazione")
+
+PM2.5_Annual_Avg_by_station <- PM2.5_Annual_Avg_by_station %>% distinct(Provincia, Avg_Valore, .keep_all = TRUE)
+
+# Group by Provincia and calculate the average of Avg_Valore
+PM2.5_Annual_Avg_by_province <- PM2.5_Annual_Avg_by_station %>%
+                                group_by(Provincia) %>%
+                                summarise(Avg_Valore = mean(Avg_Valore, na.rm = TRUE))
+PM2.5_Annual_Avg_by_province <- merge(PM2.5_Annual_Avg_by_province, province, by="Provincia")
+
+```
+
+Plot:media annua per provincia + densità annua per stazione e per provincia
+```{r}
+# Create a new variable for color based on the condition
+PM2.5_Annual_Avg_by_province$color <- ifelse(PM2.5_Annual_Avg_by_province$Avg_Valore < 25, "green", "red")
+
+# Create a bar plot
+plot <- ggplot(PM2.5_Annual_Avg_by_province, aes(x = Provincia, y = Avg_Valore, fill = color)) +
+  geom_bar(stat = "identity") +
+    geom_hline(yintercept = 25, linetype = "dashed", color = "black") + 
+  geom_text(aes(x = 10.5, y = 26, label = "Limit: 25"), hjust = -0.1, vjust = -0.5, color = "black", size = 4) +
+  labs(#title = "Respect of the Annual PM2.5 limit by Province in 2023",
+       x = "Province",
+       y = "Annual average level of PM2.5") +
+  scale_fill_manual(values = c("green", "red"), name = "Legend", labels = c("<25", ">=25")) +  # Manually set fill colors
+  theme_minimal() + theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file="annualPM2.5.pdf", width = 11, height = 8.5)
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = PM2.5_Annual_Avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore), 
+                 geom = "polygon", alpha = 0.1, bins=5) +  # Add density map
+  geom_point(data = PM2.5_Annual_Avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore),
+             size = 3, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("PM2.5 Annual Average Value by station") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+ggsave(plot, file="annualDensityPM2.5Station.pdf", width = 11, height = 8.5)
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot1 <- ggmap(lombardiaMap) +
+  stat_density_2d(data = PM2.5_Annual_Avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore), 
+                 geom = "polygon", alpha = 0.1, bins=5) +  # Add density map
+  geom_point(data = PM2.5_Annual_Avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore),
+             size = 3, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("PM2.5 Annual Average Value by zone") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+ggsave(plot1, file="annualDensityPM2.5Zone.pdf", width = 11, height = 8.5)
+```
+
+```{r}
+rm(list = c("PM2.5", "plot", "PM2.5_Annual_Avg_by_station", "PM2.5_Annual_Avg_by_province"))
+```
+
+BIOSSIDO DI AZOTO
+Creo il dataset + plot delle stazioni
+```{r}
+NO2  <- fullData [fullData$NomeTipoSensore == "Biossido di Azoto",]
+
+ # plot the detection station
+plot <- ggmap(lombardiaMap) + geom_point(data = NO2,
+                     aes(x = lng, y = lat), size = 2, alpha = 0.15) + 
+                     ggtitle("NO2 Detection Station") +
+                     labs(x = "Longitude", y = "Latitude") +
+                     theme(plot.title = element_text(hjust = 0.5))
+```
+
+Calcolo:
+- numero di volte che viene superato il limite orario
+- media annua per stazione
+- media annua per provincia
+```{r}
+# Limite Orario 200 μg/m3 media oraria da non superare più di 18 volte/anno 
+# Limite annuale 40 μg/m3 media annua
+
+# Filter rows where Valore is greater than 200, count distinct days where Valore is greater than 200 for each province
+NO2OverLimit <- NO2 %>% 
+  filter(Valore > 200)%>%
+  group_by(Provincia, Data) %>%
+  group_by(Provincia) %>%
+  summarize(DaysAbove200 = n())
+
+# AVERAGE BY STATION
+# Convert 'Data' column to Date type
+NO2$Data <- as.Date(NO2$Data)
+
+# Calculate the annual average grouped by IdStazione for the year 2023
+NO2_annual_avg_by_station <- NO2 %>%
+  filter(lubridate::year(Data) == 2023) %>%
+  group_by(IdStazione) %>%
+  summarise(Avg_Valore_Station = mean(Valore, na.rm = TRUE))
+
+# AVERAGE BY PROVINCE
+# Calculate the annual average grouped by Provincia using the previously calculated data
+NO2_annual_avg_by_province <- NO2_annual_avg_by_station %>%
+  left_join(NO2 %>% select(IdStazione, Provincia) %>% distinct(), by = "IdStazione") %>%
+  group_by(Provincia) %>%
+  summarise(Avg_Valore_Province = mean(Avg_Valore_Station, na.rm = TRUE))
+
+NO2_annual_avg_by_station <- merge(NO2_annual_avg_by_station, stationData[stationData$NomeTipoSensore == "Biossido di Azoto",])
+
+# Aggiungo le coordinate delle province
+NO2_annual_avg_by_province <- merge(NO2_annual_avg_by_province, province, by="Provincia")
+```
+
+Plot: 
+```{r}
+# Create a new variable for color based on the condition
+NO2OverLimit$color <- ifelse(NO2OverLimit$DaysAbove200 < 18, "lightgreen", "red")
+
+# Create a bar plot
+plot <- ggplot(NO2OverLimit, aes(x = Provincia, y = DaysAbove200, fill = color)) +
+  geom_bar(stat = "identity") +
+  geom_hline(yintercept = 18, linetype = "dashed", color = "black") + 
+  geom_text(aes(x = 10.5, y = 18, label = "Limit: 18"), hjust = -0.1, vjust = -0.5, color = "black", size = 4) +
+  labs(#title = "Respect of the Daily NO2 limit by Province in 2023",
+       x = "Province", y = "Number of days with NO2 > 200") +
+  scale_fill_manual(values = c("green", "red"), name = "Legend", labels = c("< 18 Days", ">=18 Days")) + theme_minimal() +  theme(plot.title = element_text(hjust = 0.5)) + # Center the plot title  
+  coord_cartesian(xlim = c(0,12))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file = "NO2DailyLimit.pdf", width = 11, height = 8.5)
+
+# Create a new variable for color based on the condition
+NO2_annual_avg_by_province$color <- ifelse(NO2_annual_avg_by_province$Avg_Valore_Province < 40, "green", "red")
+
+# Create a bar plot
+plot <- ggplot(NO2_annual_avg_by_province, aes(x = Provincia, y = Avg_Valore_Province, fill = color)) +
+  geom_bar(stat = "identity") +
+    geom_hline(yintercept = 40, linetype = "dashed", color = "black") + 
+  geom_text(aes(x = 10.5, y = 40, label = "Limit: 40"), hjust = -0.1, vjust = -0.5, color = "black", size = 4) +
+  labs(#title = "Respect of the Annual NO2 limit by Province in 2023",
+       x = "Province",
+       y = "Annual average level of NO2") +
+  scale_fill_manual(values = c("green", "red"), name = "Legend", labels = c("Under 40", "Over 40")) +  # Manually set fill colors 
+  theme_minimal() + theme(plot.title = element_text(hjust = 0.5)) +  # Center the plot title
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file = "AnnualNO2.pdf", width = 11, height = 8.5)
+
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = NO2_annual_avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore_Station), 
+                 geom = "polygon", alpha = 0.1) +  # Add density map
+  geom_point(data = NO2_annual_avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore_Station),
+             size = 3, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("NO2 Annual Average Value by station") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file = "annualDensityNO2Station.pdf", width = 11, height = 8.5)
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = NO2_annual_avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore_Province), 
+                 geom = "polygon", alpha = 0.25) +  # Add density map
+  geom_point(data = NO2_annual_avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore_Province),
+             size = 5, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("NO2 Annual Average Value by zone") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file = "annualDensityNO2Zone.pdf", width = 11, height = 8.5)
+```
+
+```{r}
+rm(list = c("NO2", "NO2_annual_avg_by_province", "NO2OverLimit", "NO2_annual_avg_by_station", "plot"))
+```
+
+BIOSSIDO DI ZOLFO
+Creo il dataset
+```{r}
+SO2  <- fullData [fullData$NomeTipoSensore == "Biossido di Zolfo",]
+
+ # plot the detection station
+plot <- ggmap(lombardiaMap) + geom_point(data = SO2,
+                     aes(x = lng, y = lat), size = 2, alpha = 0.15) + 
+                     ggtitle("SO2 Detection Station") +
+                     labs(x = "Longitude", y = "Latitude") +
+                     theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+Calcolo:
+- quante volte viene superato il limite orario
+- la media giornaliera per stazione 
+- la media giornaliera per provincia
+```{r}
+#Limite Orario 350 μg/m3 media oraria da non superare più di 24 volte/anno 
+#Limite giornaliero 125 μg/m3 da non superare più di 3 giorni/anno
+
+# Calcolo del numero di volte over il limite per provincia
+SO2OverLimit <- SO2 %>% 
+  filter(Valore > 350)%>%
+  group_by(Provincia, Data) %>%
+  group_by(Provincia) %>%
+  summarize(TimesAbove350 = n())
+
+# Calcolo della media giornaliera per provincia
+SO2DailyAverage <- SO2
+
+# Convert the "Data" column to Date type
+SO2DailyAverage$Data <- as.Date(SO2DailyAverage$Data)
+
+# Group by "Provincia" and "Data", then calculate the daily average for each group
+daily_avgs <- SO2DailyAverage %>%
+  group_by(Provincia, Data) %>%
+  summarise(DailyAvg = mean(Valore))
+
+# Count the number of distinct days where the average value is greater than 125 for each "Provincia"
+SO2distinct_days_count_per_province <- daily_avgs %>%
+  filter(DailyAvg > 125) %>%
+  group_by(Provincia) %>%
+  summarise(DaysAbove125 = n_distinct(Data))
+
+# Display the resulting data frame
+nrow(SO2distinct_days_count_per_province)
+
+```
+
+ANNUAL AVERAGE BY PROVINCE AND ZONE
+```{r}
+# ANNUAL AVG BY PROVINCE AND BY STATION
+# Convert 'Data' column to Date type
+SO2$Data <- as.Date(SO2$Data)
+
+# Calculate the annual average grouped by IdStazione for the year 2023
+SO2_annual_avg_by_station <- SO2 %>%
+  filter(lubridate::year(Data) == 2023) %>%
+  group_by(IdStazione) %>%
+  summarise(Avg_Valore_Station = mean(Valore, na.rm = TRUE))
+
+# Calculate the annual average grouped by Provincia
+SO2_annual_avg_by_province <- SO2_annual_avg_by_station %>%
+  left_join(SO2 %>% select(IdStazione, Provincia) %>% distinct(), by = "IdStazione") %>%
+  group_by(Provincia) %>%
+  summarise(Avg_Valore_Province = mean(Avg_Valore_Station, na.rm = TRUE))
+
+# Adding lat and lng for station
+SO2_annual_avg_by_station <- merge(SO2_annual_avg_by_station, stationData[stationData$NomeTipoSensore == "Biossido di Azoto",])
+
+# Adding lat and lng for provinces
+SO2_annual_avg_by_province <- merge(SO2_annual_avg_by_province, province, by="Provincia")
+```
+
+PLOTS
+```{r}
+# Create a new variable for color based on the condition
+SO2distinct_days_count_per_province$color <- ifelse(SO2distinct_days_count_per_province$DaysAbove125 < 3, "green", "red")
+
+# Create a bar plot
+plot <- ggplot(SO2distinct_days_count_per_province, aes(x = Provincia, y = DaysAbove125, fill = color)) +
+  geom_bar(stat = "identity") +
+    geom_hline(yintercept = 3, linetype = "dashed", color = "black") + 
+  geom_text(aes(x = 10.5, y = 1, label = "Limit: 3"), hjust = -0.1, vjust = -0.5, color = "black", size = 4) +
+  labs(#title = "Respect of the Daily SO2 limit by Province in 2023",
+       x = "Province",
+       y = "Number of days with SO2 over limit") +
+  scale_fill_manual(values = c("green", "red"), name = "Legend", labels = c("<3", ">=3")) +  # Manually set fill colors
+  theme_minimal() + theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+#ggsave(plot, file="dailySO2.pdf")
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = SO2_annual_avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore_Station), 
+                 geom = "polygon", alpha = 0.1) +  # Add density map
+  geom_point(data = SO2_annual_avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore_Station),
+             size = 3, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("SO2 Annual Average Value by station") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+ 
+ggsave(plot, file="annualDensitySO2Station.pdf", width = 11, height = 8.5)
+
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = SO2_annual_avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore_Province), 
+                 geom = "polygon", alpha = 0.25) +  # Add density map
+  geom_point(data = SO2_annual_avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore_Province),
+             size = 5, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("SO2 Annual Average Value by zone") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file="annualDensitySO2Zone.pdf", width = 11, height = 8.5)
+```
+
+
+```{r}
+rm(list=c("SO2", "SO2OverLimit", "SO2_annual_avg_by_station", "SO2_annual_avg_by_province", "SO2distinct_days_count_per_province", "SO2DailyAverage"))
+```
+
+OZONO
+```{r}
+O3 <- fullData [fullData$NomeTipoSensore == "Ozono",]
+# Valore Limite 120 μg/m3 come media mobile 8h da non superare più di 25 volte/anno
+```
+
+```{r}
+#supponendo di avere già la media mobile 8h
+
+# Calcolo del numero di volte over il limite per provincia
+
+O3OverLimit <- O3 %>% 
+  filter(Valore > 120) %>%
+  distinct(Provincia, Data) %>%
+  group_by(Provincia) %>%
+  summarize(TimesAbove120 = n())
+
+O3OverLimit$TimesAbove120 <- as.numeric(O3OverLimit$TimesAbove120)
+O3OverLimitDensity <- merge(O3OverLimit, province, by="Provincia")
+```
+
+```{r}
+# Create a new variable for color based on the condition
+O3OverLimit$color <- ifelse(O3OverLimit$TimesAbove120 < 25, "green", "red")
+
+# Create a bar plot with fill color
+plot <- ggplot(O3OverLimit, aes(x = Provincia, y = TimesAbove120, fill = color)) +
+  geom_bar(stat = "identity") +
+  geom_hline(yintercept = 25, linetype = "dashed", color = "black") +
+  geom_text(aes(x = 10.5, y = 25, label = "Limit: 25"), hjust = -0.1, vjust = -0.5, color = "black", size = 4) +
+  labs(
+    x = "Province",
+    y = "Number of times with O3 8h mobile average over limit"
+  ) +
+  scale_fill_manual(values = c("red", "green"), name = "Legend", labels = c("<25", ">=25")) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file="O3OverLimit.pdf", width = 11, height = 8.5)
+
+# Assuming TimesAbove120 is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Number of times over limit (O3)")
+
+# Plot the detection station with color based on TimesAbove120 and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = O3OverLimitDensity, aes(x = lng, y = lat, fill = TimesAbove120), 
+                 geom = "polygon", alpha = 0.1) +  # Add density map
+  geom_point(data = O3OverLimitDensity, aes(x = lng, y = lat, fill = TimesAbove120),
+             size = 3, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("Number of times over limit (O3)") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file="O3OverLimitDensity.pdf", width = 11, height = 8.5)
+```
+
+```{r}
+rm(list=c("O3", "O3OverLimit", "O3OverLimitDensity", "plot"))
+```
+
+
+MONOSSIDO DI CARBONIO
+```{r}
+CO <- fullData [fullData$NomeTipoSensore == "Monossido di Carbonio",]
+# CO per il quale è fornita la media mobile sulle 8 ore 
+# Valore Limite 10 mg/m3 come media mobile 8h
+```
+
+
+```{r}
+# supponendo di avere già la media mobile 8h
+
+# Calcolo del numero di volte over il limite per provincia
+COOverLimit <- CO %>%
+  filter(Valore > 10) %>%
+  distinct(Provincia, Data) %>%
+  group_by(Provincia) %>%
+  summarize(TimesAbove10 = n())
+
+nrow(COOverLimit)
+
+nrow(CO[CO$Valore> 10,])
+
+```
+
+```{r}
+# Create a new variable for color based on the condition
+COOverLimit$color <- ifelse(COOverLimit$TimesAbove10 < 25, "green", "red")
+
+# Create a bar plot
+plot <- ggplot(COOverLimit, aes(x = Provincia, y = TimesAbove10, fill = O3OverLimit$color)) +
+  geom_bar(stat = "identity") +
+  geom_hline(yintercept = 25, linetype = "dashed", color = "black") + 
+  geom_text(aes(x = 10.5, y = 1, label = "Limit: 10"), hjust = -0.1, vjust = -0.5, color = "black", size = 4) +
+  labs(title = "Respect of the 8h mobile average CO limit by Province in 2023",
+       x = "Province",
+       y = "Number of times with CO 8h mobile average over limit") +
+  scale_fill_manual(values = c("green", "red"), name = "Legend", labels = c("<", ">=25")) +  # Manually set fill colors
+  theme_minimal() + theme(plot.title = element_text(hjust = 0.5)) 
+
+ggsave(plot, file="COOverLimit.pdf")
+```
+
+BENZENE
+```{r}
+benzene <- fullData [fullData$NomeTipoSensore == "Benzene",]
+
+# Benzene per il quale è fornita la media mobile sulle 24 ore precedenti 
+# Annual limit 5 μg/m3 as annual average
+```
+
+```{r}
+# plot the detection station
+plot <- ggmap(lombardiaMap) + geom_point(data = benzene,
+                     aes(x = lng, y = lat), size = 2, alpha = 0.15) + 
+                     ggtitle("benzene Detection Station") +
+                     labs(x = "Longitude", y = "Latitude") +
+                     theme(plot.title = element_text(hjust = 0.5))
+
+# ANNUAL AVG BY PROVINCE AND BY STATION
+# Convert 'Data' column to Date type
+benzene$Data <- as.Date(benzene$Data)
+
+# Create a new dataset with annual average values for the year 2023
+benzene_Annual_Avg_by_station <- benzene %>%
+  filter(lubridate::year(Data) == 2023) %>%
+  group_by(IdStazione) %>%
+  summarise(Avg_Valore = mean(Valore, na.rm = TRUE))
+
+benzene_Annual_Avg_by_station <- merge(benzene_Annual_Avg_by_station, benzene, by="IdStazione")
+
+benzene_Annual_Avg_by_station <- benzene_Annual_Avg_by_station %>% distinct(Provincia, Avg_Valore, .keep_all = TRUE)
+
+# Group by Provincia and calculate the average of Avg_Valore
+benzene_Annual_Avg_by_province <- benzene_Annual_Avg_by_station %>%
+                                group_by(Provincia) %>%
+                                summarise(Avg_Valore = mean(Avg_Valore, na.rm = TRUE))
+benzene_Annual_Avg_by_province <- merge(benzene_Annual_Avg_by_province, province, by="Provincia")
+
+```
+
+
+Plot:media annua per provincia + densità annua per stazione e per provincia
+```{r}
+# Create a new variable for color based on the condition
+benzene_Annual_Avg_by_province$color <- ifelse(benzene_Annual_Avg_by_province$Avg_Valore < 5, "green", "red")
+
+# Create a bar plot
+plot <- ggplot(benzene_Annual_Avg_by_province, aes(x = Provincia, y = Avg_Valore, fill = color)) +
+  geom_bar(stat = "identity") +
+    geom_hline(yintercept = 5, linetype = "dashed", color = "black") + 
+  geom_text(aes(x = 9.5, y = 5, label = "Limit: 5"), hjust = -0.1, vjust = -0.5, color = "black", size = 4) +
+  labs(#title = "Respect of the Annual benzene limit by Province in 2023",
+       x = "Province",
+       y = "Annual average level of Benzene") +
+  scale_fill_manual(values = c("green", "red"), name = "Legend", labels = c("<5", ">=5")) +  # Manually set fill colors
+  theme_minimal() + theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file="annualBenzene.pdf", width = 11, height = 8.5)
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = benzene_Annual_Avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore), 
+                 geom = "polygon", alpha = 0.1, bins=5) +  # Add density map
+  geom_point(data = benzene_Annual_Avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore),
+             size = 3, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("Benzene Annual Average Value by station") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+ggsave(plot, file="annualDensityBenzeneStation.pdf", width = 11, height = 8.5)
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = benzene_Annual_Avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore), 
+                 geom = "polygon", alpha = 0.1, bins=5) +  # Add density map
+  geom_point(data = benzene_Annual_Avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore),
+             size = 3, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("Benzene Annual Average Value by zone") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file="annualDensityBenzeneZone.pdf", width = 11, height = 8.5)
+```
+
+```{r}
+rm(list = c("benzene", "benzene_Annual_Avg_by_province", "benzene_Annual_Avg_by_station", "plot", "plot1"))
+```
+
+SPLITTING THE DATASET
+```{r}
+NH3 <- fullData [fullData$NomeTipoSensore == "Ammoniaca",]
+```
+
+
+Calcolo:
+- il numero di giorni in cui viene superato il "limite" (per provincia)
+- la media annua per stazione
+- la media annua per provincia
+```{r}
+
+# concentrazione nell'aria urbana: 20 ug/m3
+# NUMBER OF DAYS OVER LIMIT
+
+# Filter rows where Valore is greater than 50, count distinct days where Valore is greater than 50 for each province
+NH3OverLimit <- NH3 %>% 
+  filter(Valore > 20)%>%
+  group_by(Provincia, Data) %>%
+  group_by(Provincia) %>%
+  summarize(DaysAbove20 = sum(n_distinct(Data)))
+
+# ANNUAL AVG BY STATION AND BY PROVINCE
+# Convert 'Data' column to Date type
+NH3$Data <- as.Date(NH3$Data)
+
+# Calculate the annual average grouped by IdStazione for the year 2023
+NH3_annual_avg_by_station <- NH3 %>%
+  filter(lubridate::year(Data) == 2023) %>%
+  group_by(IdStazione) %>%
+  summarise(Avg_Valore_Station = mean(Valore, na.rm = TRUE))
+
+# Calculate the annual average grouped by Provincia
+NH3_annual_avg_by_province <- NH3_annual_avg_by_station %>%
+  left_join(NH3 %>% select(IdStazione, Provincia) %>% distinct(), by = "IdStazione") %>%
+  group_by(Provincia) %>%
+  summarise(Avg_Valore_Province = mean(Avg_Valore_Station, na.rm = TRUE))
+
+# Adding lat and lng for station
+NH3_annual_avg_by_station <- merge(NH3_annual_avg_by_station, stationData[stationData$NomeTipoSensore == "Ammoniaca",])
+
+# Adding lat and lng for provinces
+NH3_annual_avg_by_province <- merge(NH3_annual_avg_by_province, province, by="Provincia")
+```
+
+Plot: rispetto limiti giornaliero
+```{r}
+# Create a new variable for color based on the condition
+NH3OverLimit$color <- ifelse(NH3OverLimit$DaysAbove20 == 0, "lightgreen", "red")
+
+# Create a bar plot
+plot <- ggplot(NH3OverLimit, aes(x = Provincia, y = DaysAbove20, fill = color)) +
+  geom_bar(stat = "identity") +
+  labs(#title = "Respect of the Daily NH3 limit by Province in 2023",
+       x = "Province", y = "Number of days with NH3 > 20") +
+  theme_minimal() + theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+
+ggsave(plot, file="NH3DailyLimit.pdf", width = 11, height = 8.5)
+```
+
+
+Plot:densità annua per stazione + densità annua per provincia
+```{r}
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot <- ggmap(lombardiaMap) +
+  stat_density_2d(data = NH3_annual_avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore_Station), 
+                 geom = "polygon", alpha = 0.1) +  # Add density map
+  geom_point(data = NH3_annual_avg_by_station, aes(x = lng, y = lat, fill = Avg_Valore_Station),
+             size = 3, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("NH3 Annual Average Value by station") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale + 
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+
+ggsave(plot, file="annualDensityNH3Station.pdf", width = 11, height = 8.5)
+
+
+# Assuming Avg_Valore_Station is the variable you want to use for color
+color_scale <- scale_fill_gradient(low = "green", high = "red", name = "Average yearly value")
+
+# Plot the detection station with color based on Avg_Valore_Station and add density map
+plot1 <- ggmap(lombardiaMap) +
+  stat_density_2d(data = NH3_annual_avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore_Province), 
+                 geom = "polygon", alpha = 0.25) +  # Add density map
+  geom_point(data = NH3_annual_avg_by_province, aes(x = lng, y = lat, fill = Avg_Valore_Province),
+             size = 5, alpha = 0.8, shape = 21) +  # shape = 21 for filled circles
+  #ggtitle("NH3 Annual Average Value by zone") +
+  labs(x = "Longitude", y = "Latitude") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  color_scale +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(size = 14),  # Adjust the 'size' parameter as needed
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 16),  # Adjust the 'size' parameter as needed
+        axis.title.y = element_text(size = 16))
+ggsave(plot, file="annualDensityNH3Zone.pdf", width = 11, height = 8.5)
+```
+
+```{r}
+rm(list = c("NH3", "NH3_annual_avg_by_province", "NH3_annual_avg_by_station", "NH3OverLimit", "plot", "color_scale", "plot1"))
+```
+
+```{r}
+NO <- fullData [fullData$NomeTipoSensore == "Monossido di Azoto",]
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+NOX <- fullData [fullData$NomeTipoSensore == "Ossidi di Azoto",]
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
